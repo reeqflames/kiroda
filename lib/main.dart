@@ -5,84 +5,113 @@ void main() => runApp(const KirodaApp());
 
 class KirodaApp extends StatelessWidget {
   const KirodaApp({super.key});
-  @override
-  Widget build(BuildContext context) => MaterialApp(
-    debugShowCheckedModeBanner: false,
-    title: 'KIRODA',
-    theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.green),
+  @override Widget build(BuildContext context) => MaterialApp(
+    debugShowCheckedModeBanner: false, title: 'KIRODA',
+    theme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFF008F75)),
     home: const CalculatorPage(),
   );
 }
 
 class CalculatorPage extends StatefulWidget {
   const CalculatorPage({super.key});
-  @override
-  State<CalculatorPage> createState() => _CalculatorPageState();
+  @override State<CalculatorPage> createState() => _CalculatorPageState();
 }
 
 class _CalculatorPageState extends State<CalculatorPage> {
   final price = TextEditingController(text: '100000');
   final deposit = TextEditingController(text: '10000');
   final rate = TextEditingController(text: '3');
+  final budget = TextEditingController(text: '1200');
   final calculator = const LoanCalculator();
-  int years = 9;
+  int months = 108;
   FinancingMethod method = FinancingMethod.legacyFlat;
+  static const tenures = [12,18,24,30,36,42,48,54,60,66,72,78,84,90,96,102,108];
+
+  double? number(TextEditingController c) => double.tryParse(c.text.replaceAll(',', ''));
+  String money(double v) => 'RM' + v.toStringAsFixed(2);
+  String tenureLabel(int m) {
+    final y = m / 12;
+    final years = y == y.roundToDouble() ? y.toInt().toString() : y.toStringAsFixed(1);
+    return years + ' tahun (' + m.toString() + ' bulan)';
+  }
 
   LoanResult? get result {
-    final p = double.tryParse(price.text);
-    final d = double.tryParse(deposit.text);
-    final r = double.tryParse(rate.text);
-    if (p == null || d == null || r == null || p < d) return null;
-    return calculator.calculate(principal: p - d, annualRatePercent: r, months: years * 12, method: method);
+    final p=number(price), d=number(deposit), r=number(rate);
+    if (p==null || d==null || r==null || p<0 || d<0 || d>p) return null;
+    return calculator.calculate(principal:p-d, annualRatePercent:r, months:months, method:method);
   }
 
-  String money(double value) => 'RM' + value.toStringAsFixed(2);
-
-  @override
-  Widget build(BuildContext context) {
-    final x = result;
+  @override Widget build(BuildContext context) {
+    final x=result;
     return Scaffold(
       appBar: AppBar(title: const Text('KIRODA')),
-      body: SafeArea(child: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text('Kira sebelum pandu.', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 24),
-          TextField(controller: price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Harga kereta (RM)', border: OutlineInputBorder()), onChanged: (_) => setState(() {})),
-          const SizedBox(height: 12),
-          TextField(controller: deposit, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Deposit (RM)', border: OutlineInputBorder()), onChanged: (_) => setState(() {})),
-          const SizedBox(height: 12),
-          TextField(controller: rate, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Kadar setahun (%)', border: OutlineInputBorder()), onChanged: (_) => setState(() {})),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<FinancingMethod>(
-            initialValue: method,
-            decoration: const InputDecoration(labelText: 'Kaedah pembiayaan', border: OutlineInputBorder()),
-            items: const [
-              DropdownMenuItem(value: FinancingMethod.legacyFlat, child: Text('Flat rate (legacy)')),
-              DropdownMenuItem(value: FinancingMethod.reducingFixed, child: Text('Reducing balance / EIR')),
-              DropdownMenuItem(value: FinancingMethod.reducingVariable, child: Text('Reducing balance (variable scenario)')),
-            ],
-            onChanged: (v) => setState(() => method = v!),
-          ),
-          const SizedBox(height: 20),
-          Text('Tempoh: ' + years.toString() + ' tahun'),
-          Slider(value: years.toDouble(), min: 1, max: 9, divisions: 8, label: years.toString(), onChanged: (v) => setState(() => years = v.round())),
-          const SizedBox(height: 16),
-          Card(child: Padding(padding: const EdgeInsets.all(20), child: x == null
-            ? const Text('Semak nilai yang dimasukkan.')
-            : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('ANGGARAN BULANAN'),
-                const SizedBox(height: 6),
-                Text(money(x.monthlyPayment), style: Theme.of(context).textTheme.headlineMedium),
-                const SizedBox(height: 14),
-                Text('Jumlah loan: ' + money(x.principal)),
-                Text('Jumlah bayaran: ' + money(x.totalPayment)),
-                Text('Kos pembiayaan: ' + money(x.financingCost)),
-              ]))),
-          const SizedBox(height: 12),
-          const Text('Anggaran untuk perbandingan sahaja. Tawaran sebenar bergantung pada penyedia pembiayaan.'),
-        ],
-      )),
+      body: SafeArea(child: ListView(padding: const EdgeInsets.all(16), children: [
+        Text('Kira sebelum pandu.', style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height:20),
+        field(price,'Harga kereta (RM)'), const SizedBox(height:12),
+        field(deposit,'Deposit (RM)'), const SizedBox(height:12),
+        field(rate,'Kadar setahun (%)', decimal:true), const SizedBox(height:12),
+        DropdownButtonFormField<int>(
+          initialValue: months, decoration: const InputDecoration(labelText:'Tempoh pembiayaan', border:OutlineInputBorder()),
+          items: tenures.map((m)=>DropdownMenuItem(value:m, child:Text(tenureLabel(m)))).toList(),
+          onChanged:(v)=>setState(()=>months=v!),
+        ), const SizedBox(height:12),
+        DropdownButtonFormField<FinancingMethod>(
+          initialValue:method, decoration:const InputDecoration(labelText:'Kaedah pembiayaan', border:OutlineInputBorder()),
+          items:const [
+            DropdownMenuItem(value:FinancingMethod.legacyFlat, child:Text('Flat rate (legacy)')),
+            DropdownMenuItem(value:FinancingMethod.reducingFixed, child:Text('Reducing balance / EIR')),
+            DropdownMenuItem(value:FinancingMethod.reducingVariable, child:Text('Reducing balance - variable scenario')),
+          ], onChanged:(v)=>setState(()=>method=v!),
+        ), const SizedBox(height:16),
+        if (x!=null) resultCard(x) else const Card(child:Padding(padding:EdgeInsets.all(16),child:Text('Semak nilai yang dimasukkan.'))),
+        const SizedBox(height:20),
+        Text('Banding cepat',style:Theme.of(context).textTheme.titleMedium), const SizedBox(height:8),
+        Row(children:[60,84,108].map((m)=>Expanded(child:Padding(padding:const EdgeInsets.symmetric(horizontal:4),
+          child:OutlinedButton(onPressed:()=>setState(()=>months=m), child:Text((m~/12).toString()+' tahun'))))).toList()),
+        const SizedBox(height:8),
+        ...quickRows(),
+        const Divider(height:32),
+        Text('Kira dari bajet bulanan',style:Theme.of(context).textTheme.titleMedium), const SizedBox(height:8),
+        field(budget,'Bajet bulanan (RM)'), const SizedBox(height:8),
+        reverseCard(),
+        const SizedBox(height:20),
+        const Text('Anggaran untuk perbandingan sahaja. Tawaran sebenar, kadar dan tempoh tersedia bergantung pada penyedia pembiayaan.',style:TextStyle(fontSize:12)),
+      ])),
     );
   }
+
+  List<Widget> quickRows() {
+    final p=number(price), d=number(deposit), r=number(rate);
+    if(p==null||d==null||r==null||d>p) return const [];
+    return [60,84,108].map((m){
+      final q=calculator.calculate(principal:p-d,annualRatePercent:r,months:m,method:method);
+      return ListTile(dense:true,title:Text((m~/12).toString()+' tahun'),trailing:Text(money(q.monthlyPayment)+' / bulan'));
+    }).toList();
+  }
+
+  Widget reverseCard() {
+    final b=number(budget), r=number(rate);
+    if(b==null||r==null||b<0) return const SizedBox.shrink();
+    final max=calculator.maxPrincipalForMonthly(monthlyBudget:b,annualRatePercent:r,months:months,method:method);
+    return Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      const Text('Anggaran jumlah pembiayaan maksimum'),
+      Text(money(max),style:Theme.of(context).textTheme.headlineSmall),
+      const SizedBox(height:4), const Text('Simulasi matematik, bukan kelulusan bank.',style:TextStyle(fontSize:12)),
+    ])));
+  }
+
+  Widget field(TextEditingController c,String label,{bool decimal=false}) => TextField(
+    controller:c, keyboardType:TextInputType.numberWithOptions(decimal:decimal),
+    decoration:InputDecoration(labelText:label,border:const OutlineInputBorder()), onChanged:(_)=>setState((){}));
+
+  Widget resultCard(LoanResult x) => Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    const Text('ANGGARAN BULANAN'), const SizedBox(height:4),
+    Text(money(x.monthlyPayment),style:Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight:FontWeight.w700)),
+    const Divider(height:24), line('Jumlah pembiayaan',money(x.principal)),
+    line('Jumlah bayaran',money(x.totalPayment)), line('Kos pembiayaan',money(x.financingCost)),
+  ])));
+
+  Widget line(String a,String b) => Padding(padding:const EdgeInsets.symmetric(vertical:3),child:Row(
+    mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[Text(a),Text(b,style:const TextStyle(fontWeight:FontWeight.w600))]));
 }
