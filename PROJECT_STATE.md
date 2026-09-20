@@ -8,7 +8,7 @@ Repository: reeqflames/kiroda
 KIRODA is the working brand for an Android-first Malaysia car financial decision app, architected to expand from loan decisions into affordability, settlement, insurance, road tax and ownership cost.
 
 ## Locked V1
-Flutter/Android first; BM default + English; offline calculations; no login/sensitive documents; manual vehicle price first. Financing methods: LEGACY_FLAT, REDUCING_FIXED, REDUCING_VARIABLE. Deposit/tenure, 5/7/9 comparison, reverse calculator, Rate Translator, Scenario Lab A/B/C, and WhatsApp-friendly sharing. No aggressive ads/affiliate in V1.
+Flutter/Android first; BM default + English; offline calculations; no login/sensitive documents; manual vehicle price first. Financing methods: LEGACY_FLAT, REDUCING_FIXED, REDUCING_VARIABLE. Deposit/tenure from 1-9 years in 6-month increments (12-108 months), 5/7/9 quick comparison, reverse calculator, Rate Translator, Scenario Lab A/B/C, and WhatsApp-friendly sharing. No aggressive ads/affiliate in V1.
 
 ## Implemented
 - Flutter package manifest + lint config
@@ -27,7 +27,7 @@ Source code has been committed, but Flutter SDK execution is not available in th
 High precision internally; round for display. Legacy flat interest = principal × annual flat rate × years. Reducing balance uses standard amortisation. Never infer reducing-balance solely from financing date.
 
 ## Next
-1. Add Android/Flutter platform scaffold and CI build/test workflow.
+1. Implement 1-9 year tenure selector (6-month increments), then Android/Flutter platform scaffold and CI build/test workflow.
 2. Add 5/7/9 comparison + reverse calculator UI.
 3. Add Rate Translator education flow.
 4. Scenario Lab/local persistence.
