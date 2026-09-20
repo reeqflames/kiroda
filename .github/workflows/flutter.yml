@@ -4,14 +4,23 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 jobs:
-  test:
+  test-and-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
+      - name: Bootstrap generated Flutter platform files
+        run: flutter create --platforms=android --org my.kiroda --project-name kiroda .
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+      - run: flutter build apk --debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kiroda-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
