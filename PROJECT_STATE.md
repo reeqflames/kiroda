@@ -1,42 +1,40 @@
 # KIRODA — Project State
 
 Last updated: 2026-09-21
-Status: DEVELOPMENT STARTED
+Status: CORE IMPLEMENTATION IN PROGRESS
 Repository: reeqflames/kiroda
 
 ## Latest approved state
-KIRODA is the working brand for an Android-first Malaysia car financial decision app. It starts as a fast car-loan decision tool but is architected to expand into affordability, settlement, insurance, road tax and ownership cost.
+KIRODA is the working brand for an Android-first Malaysia car financial decision app, architected to expand from loan decisions into affordability, settlement, insurance, road tax and ownership cost.
 
 ## Locked V1
-- Flutter / Android first
-- BM default + English
-- Offline calculations; no login or sensitive-document collection
-- Manual vehicle price first; vehicle database post-V1
-- Financing: LEGACY_FLAT, REDUCING_FIXED, REDUCING_VARIABLE
-- Deposit + tenure; 5/7/9 year comparison
-- Reverse calculator: monthly budget -> estimated maximum principal/car price
-- Rate Translator: distinguish flat rate from EIR
-- Scenario Lab A/B/C and comparison
-- Share result as image/text for WhatsApp
-- No aggressive ads/affiliate in V1
+Flutter/Android first; BM default + English; offline calculations; no login/sensitive documents; manual vehicle price first. Financing methods: LEGACY_FLAT, REDUCING_FIXED, REDUCING_VARIABLE. Deposit/tenure, 5/7/9 comparison, reverse calculator, Rate Translator, Scenario Lab A/B/C, and WhatsApp-friendly sharing. No aggressive ads/affiliate in V1.
+
+## Implemented
+- Flutter package manifest + lint config
+- Pure Dart loan calculation domain
+- Legacy flat-rate calculation
+- Reducing-balance fixed/EIR calculation
+- Variable method represented for scenario calculations
+- Reverse monthly-budget -> principal calculation
+- Initial automated tests, including RM90k @ 3% flat / 9y reference case
+- First BM calculator UI with price, deposit, rate, method, 1-9 year tenure and live result card
+
+## Important validation status
+Source code has been committed, but Flutter SDK execution is not available in the current chat runtime, so tests/build are not yet claimed as executed. Android platform scaffolding and CI are still required before an APK can be produced.
 
 ## Calculation policy
-High precision internally; round for display. Legacy flat interest = principal × annual flat rate × years. Reducing balance uses standard amortisation. Never infer reducing-balance solely from financing date. Settlement is post-V1 and must not claim to reproduce bank goodwill discounts.
+High precision internally; round for display. Legacy flat interest = principal × annual flat rate × years. Reducing balance uses standard amortisation. Never infer reducing-balance solely from financing date.
 
-## UX targets
-Result <10s; understand tenure/deposit consequence <20s; save/share <30s. Simple inputs first, advanced financing details second.
-
-## Data/source policy
-Future regulatory, road-tax, vehicle-price and financing rules require source + effective date + last verified date.
-
-## Development next
-1. Bootstrap Flutter project.
-2. Pure Dart calculation domain + tests.
-3. Calculator UI.
-4. Comparison/reverse/Rate Translator.
-5. Scenario Lab/local persistence.
-6. Share card.
-7. QA + Android release pipeline.
+## Next
+1. Add Android/Flutter platform scaffold and CI build/test workflow.
+2. Add 5/7/9 comparison + reverse calculator UI.
+3. Add Rate Translator education flow.
+4. Scenario Lab/local persistence.
+5. Share card.
+6. BM/English localization and accessibility QA.
+7. Build signed/release-ready Android artifact.
 
 ## Change log
+- 2026-09-21: Core calculation engine, reverse calculation, unit tests and first calculator UI committed.
 - 2026-09-21: Repository verified; canonical project-state file created; development baseline locked.
