@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'domain/loan_calculator.dart';
 import 'domain/rate_translator.dart';
+import 'domain/share_text.dart';
 
 void main() => runApp(const KirodaApp());
 
@@ -26,6 +29,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
   final calculator = const LoanCalculator();
   int months = 108;
   FinancingMethod method = FinancingMethod.legacyFlat;
+  final List<String> savedScenarios = [];
   static const tenures = [12,18,24,30,36,42,48,54,60,66,72,78,84,90,96,102,108];
 
   double? number(TextEditingController c) => double.tryParse(c.text.replaceAll(',', ''));
@@ -40,6 +44,34 @@ class _CalculatorPageState extends State<CalculatorPage> {
     final p=number(price), d=number(deposit), r=number(rate);
     if (p==null || d==null || r==null || p<0 || d<0 || d>p) return null;
     return calculator.calculate(principal:p-d, annualRatePercent:r, months:months, method:method);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadScenarios();
+  }
+
+  Future<void> _loadScenarios() async {
+    final prefs=await SharedPreferences.getInstance();
+    if(!mounted) return;
+    setState(()=>savedScenarios.addAll(prefs.getStringList('scenarios') ?? const []));
+  }
+
+  Future<void> saveScenario() async {
+    final x=result, p=number(price), d=number(deposit), r=number(rate);
+    if(x==null||p==null||d==null||r==null) return;
+    final item='${DateTime.now().millisecondsSinceEpoch}|$p|$d|$r|$months|${method.index}|${x.monthlyPayment}';
+    setState(() { savedScenarios.insert(0,item); if(savedScenarios.length>3) savedScenarios.removeLast(); });
+    final prefs=await SharedPreferences.getInstance();
+    await prefs.setStringList('scenarios',savedScenarios);
+  }
+
+  Future<void> shareResult() async {
+    final x=result, p=number(price), d=number(deposit), r=number(rate);
+    if(x==null||p==null||d==null||r==null) return;
+    final text=buildShareText(vehiclePrice:p,deposit:d,annualRatePercent:r,months:months,method:method,result:x);
+    await SharePlus.instance.share(ShareParams(text:text,subject:'KIRODA'));
   }
 
   @override Widget build(BuildContext context) {
@@ -66,6 +98,12 @@ class _CalculatorPageState extends State<CalculatorPage> {
           ], onChanged:(v)=>setState(()=>method=v!),
         ), const SizedBox(height:16),
         if (x!=null) resultCard(x) else const Card(child:Padding(padding:EdgeInsets.all(16),child:Text('Semak nilai yang dimasukkan.'))),
+        if(x!=null) Row(children:[
+          Expanded(child:FilledButton.icon(onPressed:saveScenario,icon:const Icon(Icons.bookmark_add_outlined),label:const Text('Simpan'))),
+          const SizedBox(width:8),
+          Expanded(child:OutlinedButton.icon(onPressed:shareResult,icon:const Icon(Icons.share_outlined),label:const Text('Kongsi'))),
+        ]),
+        if(savedScenarios.isNotEmpty) savedScenarioCard(),
         const SizedBox(height:20),
         Text('Banding cepat',style:Theme.of(context).textTheme.titleMedium), const SizedBox(height:8),
         Row(children:[60,84,108].map((m)=>Expanded(child:Padding(padding:const EdgeInsets.symmetric(horizontal:4),
@@ -83,6 +121,18 @@ class _CalculatorPageState extends State<CalculatorPage> {
       ])),
     );
   }
+
+  Widget savedScenarioCard() => Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Text('Scenario Lab',style:Theme.of(context).textTheme.titleMedium),
+    const SizedBox(height:6),
+    ...savedScenarios.asMap().entries.map((e){
+      final p=e.value.split('|');
+      final monthly=double.tryParse(p.length>6?p[6]:'') ?? 0;
+      final m=int.tryParse(p.length>4?p[4]:'') ?? 0;
+      return ListTile(contentPadding:EdgeInsets.zero,dense:true,title:Text('Scenario ${String.fromCharCode(65+e.key)}'),subtitle:Text(tenureLabel(m)),trailing:Text('${money(monthly)}/bln'));
+    }),
+    const Text('Disimpan pada telefon ini sahaja. Maksimum 3 scenario.',style:TextStyle(fontSize:12)),
+  ])));
 
   List<Widget> quickRows() {
     final p=number(price), d=number(deposit), r=number(rate);
