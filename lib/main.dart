@@ -119,12 +119,19 @@ class _CalculatorPageState extends State<CalculatorPage> {
           child:OutlinedButton(onPressed:()=>setState(()=>months=m), child:Text('${m~/12} tahun'))))).toList()),
         const SizedBox(height:8),
         ...quickRows(),
-        const Divider(height:32),
-        rateTranslatorCard(),
-        const Divider(height:32),
-        Text('Kira dari bajet bulanan',style:Theme.of(context).textTheme.titleMedium), const SizedBox(height:8),
-        field(budget,'Bajet bulanan (RM)'), const SizedBox(height:8),
-        reverseCard(),
+        const SizedBox(height:16),
+        ExpansionTile(
+          tilePadding:EdgeInsets.zero,
+          title:const Text('Faham kadar'),
+          subtitle:const Text('Flat rate vs EIR'),
+          children:[rateTranslatorCard()],
+        ),
+        ExpansionTile(
+          tilePadding:EdgeInsets.zero,
+          title:const Text('Kira dari bajet bulanan'),
+          subtitle:const Text('Anggar jumlah pembiayaan dari bajet anda'),
+          children:[field(budget,'Bajet bulanan (RM)'),const SizedBox(height:8),reverseCard()],
+        ),
         const SizedBox(height:20),
         const Text('Anggaran untuk perbandingan sahaja. Tawaran sebenar, kadar dan tempoh tersedia bergantung pada penyedia pembiayaan.',style:TextStyle(fontSize:12)),
       ])),
@@ -159,16 +166,14 @@ class _CalculatorPageState extends State<CalculatorPage> {
     final p=number(price), d=number(deposit), r=number(rate);
     if(p==null||d==null||r==null||d>p) return const SizedBox.shrink();
     final x=RateTranslator(calculator).compareSameNumericRate(principal:p-d, annualRatePercent:r, months:months);
-    return Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Text('Faham kadar',style:Theme.of(context).textTheme.titleMedium),
-      const SizedBox(height:6),
+    return Padding(padding:const EdgeInsets.only(bottom:12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       Text('${r.toStringAsFixed(2)}% flat tidak sama dengan ${r.toStringAsFixed(2)}% EIR.'),
       const SizedBox(height:10),
       line('Flat: jumlah bayaran',money(x.flat.totalPayment)),
       line('EIR: jumlah bayaran',money(x.reducing.totalPayment)),
       const SizedBox(height:6),
       const Text('Perbandingan ini menggunakan nombor kadar yang sama untuk menerangkan perbezaan kaedah kiraan; ia bukan penukaran kadar bank.',style:TextStyle(fontSize:12)),
-    ])));
+    ]));
   }
 
   Widget reverseCard() {
