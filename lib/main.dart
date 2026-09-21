@@ -58,6 +58,12 @@ class _CalculatorPageState extends State<CalculatorPage> {
     setState(()=>savedScenarios.addAll(prefs.getStringList('scenarios') ?? const []));
   }
 
+  Future<void> clearScenarios() async {
+    final prefs=await SharedPreferences.getInstance();
+    await prefs.remove('scenarios');
+    if(mounted) setState(savedScenarios.clear);
+  }
+
   Future<void> saveScenario() async {
     final x=result, p=number(price), d=number(deposit), r=number(rate);
     if(x==null||p==null||d==null||r==null) return;
@@ -131,7 +137,10 @@ class _CalculatorPageState extends State<CalculatorPage> {
       final m=int.tryParse(p.length>4?p[4]:'') ?? 0;
       return ListTile(contentPadding:EdgeInsets.zero,dense:true,title:Text('Scenario ${String.fromCharCode(65+e.key)}'),subtitle:Text(tenureLabel(m)),trailing:Text('${money(monthly)}/bln'));
     }),
-    const Text('Disimpan pada telefon ini sahaja. Maksimum 3 scenario.',style:TextStyle(fontSize:12)),
+    Row(children:[
+      const Expanded(child:Text('Disimpan pada telefon ini sahaja. Maksimum 3 scenario.',style:TextStyle(fontSize:12))),
+      TextButton(onPressed:clearScenarios,child:const Text('Padam semua')),
+    ]),
   ])));
 
   List<Widget> quickRows() {
@@ -172,6 +181,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
 
   Widget field(TextEditingController c,String label,{bool decimal=false}) => TextField(
     controller:c, keyboardType:TextInputType.numberWithOptions(decimal:decimal),
+    textInputAction:TextInputAction.next,
     decoration:InputDecoration(labelText:label,border:const OutlineInputBorder()), onChanged:(_)=>setState((){}));
 
   Widget resultCard(LoanResult x) => Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
