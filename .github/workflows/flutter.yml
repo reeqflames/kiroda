@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths-ignore:
       - 'PROJECT_STATE.md'
+      - 'README.md'
   pull_request:
     branches: [main]
   workflow_dispatch:
