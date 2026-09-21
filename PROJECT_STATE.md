@@ -32,15 +32,23 @@ Source code has been committed, but Flutter SDK execution is not available in th
 ## Calculation policy
 High precision internally; round for display. Legacy flat interest = principal × annual flat rate × years. Reducing balance uses standard amortisation. Never infer reducing-balance solely from financing date.
 
+## Current build status
+- Flutter CI run #15: analyze PASS, tests PASS, Android debug APK build PASS.
+- Debug APK artifact generated successfully in GitHub Actions.
+- Scenario Lab now stores up to 3 scenarios locally on-device.
+- Native share sheet result sharing implemented.
+- Rate Translator education UI implemented.
+
 ## Next
-1. Complete Android platform scaffold so CI can build the app.
-2. Add Rate Translator UI/education flow.
-3. Scenario Lab local persistence + UI.
-4. Share card.
-5. BM/English localization and accessibility QA.
-6. Build release-ready Android artifact.
+1. Validate latest Scenario Lab/share dependency CI run.
+2. Improve Scenario Lab comparison/edit/delete UX.
+3. Add BM/English localization and accessibility QA.
+4. Add share-image card (text sharing already works).
+5. Prepare signed Play Store release workflow once signing credentials are available.
 
 ## Change log
+- 2026-09-21: Flutter CI #15 fully green and produced first working debug APK artifact.
+- 2026-09-21: Added offline Scenario Lab (max 3), native result sharing, and share-text test.
 - 2026-09-21: Tenure 12-108 months, quick comparison, reverse UI, Rate Translator/Scenario domain modules and Flutter CI workflow committed.
 - 2026-09-21: Core calculation engine, reverse calculation, unit tests and first calculator UI committed.
 - 2026-09-21: Repository verified; canonical project-state file created; development baseline locked.
