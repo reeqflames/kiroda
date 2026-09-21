@@ -46,12 +46,19 @@ High precision internally; round for display. Legacy flat interest = principal Ã
 - Native share sheet result sharing implemented.
 - Rate Translator education UI implemented.
 
+## Test-candidate work
+- CI #23 passed after progressive-disclosure UX cleanup.
+- CI now builds debug APK plus smaller ABI-specific release APKs for easier local phone testing.
+- Added calculator UI smoke tests for the core journey and advanced-tool disclosure.
+- Continued hierarchy/spacing polish using the centralized design system.
+
 ## Next
-1. Validate latest Scenario Lab/share dependency CI run.
-2. Improve Scenario Lab comparison/edit/delete UX.
-3. Add BM/English localization and accessibility QA.
-4. Add share-image card (text sharing already works).
-5. Prepare signed Play Store release workflow once signing credentials are available.
+1. Require latest UI/test/release-APK CI to be green.
+2. Hand off the arm64 test APK for real-device UX testing.
+3. Fix findings from real-device testing.
+4. Add BM/English localization and accessibility QA.
+5. Add share-image card after the core local-test UX is approved.
+6. Prepare Play Store signing/AAB only after local candidate approval.
 
 ## Change log
 - 2026-09-21: Flutter CI #15 fully green and produced first working debug APK artifact.
