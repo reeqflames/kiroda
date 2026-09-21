@@ -28,11 +28,11 @@ class _CalculatorPageState extends State<CalculatorPage> {
   static const tenures = [12,18,24,30,36,42,48,54,60,66,72,78,84,90,96,102,108];
 
   double? number(TextEditingController c) => double.tryParse(c.text.replaceAll(',', ''));
-  String money(double v) => 'RM' + v.toStringAsFixed(2);
+  String money(double v) => 'RM${v.toStringAsFixed(2)}';
   String tenureLabel(int m) {
     final y = m / 12;
     final years = y == y.roundToDouble() ? y.toInt().toString() : y.toStringAsFixed(1);
-    return years + ' tahun (' + m.toString() + ' bulan)';
+    return '$years tahun ($m bulan)';
   }
 
   LoanResult? get result {
@@ -68,7 +68,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
         const SizedBox(height:20),
         Text('Banding cepat',style:Theme.of(context).textTheme.titleMedium), const SizedBox(height:8),
         Row(children:[60,84,108].map((m)=>Expanded(child:Padding(padding:const EdgeInsets.symmetric(horizontal:4),
-          child:OutlinedButton(onPressed:()=>setState(()=>months=m), child:Text((m~/12).toString()+' tahun'))))).toList()),
+          child:OutlinedButton(onPressed:()=>setState(()=>months=m), child:Text('${m~/12} tahun'))))).toList()),
         const SizedBox(height:8),
         ...quickRows(),
         const Divider(height:32),
@@ -86,7 +86,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
     if(p==null||d==null||r==null||d>p) return const [];
     return [60,84,108].map((m){
       final q=calculator.calculate(principal:p-d,annualRatePercent:r,months:m,method:method);
-      return ListTile(dense:true,title:Text((m~/12).toString()+' tahun'),trailing:Text(money(q.monthlyPayment)+' / bulan'));
+      return ListTile(dense:true,title:Text('${m~/12} tahun'),trailing:Text('${money(q.monthlyPayment)} / bulan'));
     }).toList();
   }
 
