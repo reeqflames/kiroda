@@ -32,6 +32,13 @@ Source code has been committed, but Flutter SDK execution is not available in th
 ## Calculation policy
 High precision internally; round for display. Legacy flat interest = principal × annual flat rate × years. Reducing balance uses standard amortisation. Never infer reducing-balance solely from financing date.
 
+## Locked UI principles
+- Fresh, modern, clean, aesthetic and consumer-app quality.
+- Typography and number hierarchy are first-class design elements.
+- Ultimate user-friendly: core calculation stays obvious; advanced tools use progressive disclosure.
+- Design tokens/components centralized for fast small tweaks and low maintenance.
+- Calculation/business logic stays separate from presentation.
+
 ## Current build status
 - Flutter CI run #15: analyze PASS, tests PASS, Android debug APK build PASS.
 - Debug APK artifact generated successfully in GitHub Actions.
