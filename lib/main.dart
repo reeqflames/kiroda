@@ -114,7 +114,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
         ]),
         if(savedScenarios.isNotEmpty) savedScenarioCard(),
         const SizedBox(height:24),
-        sectionTitle('Banding cepat','Nampak kesan tempoh pada komitmen bulanan'),,style:Theme.of(context).textTheme.titleMedium), const SizedBox(height:8),
+        sectionTitle('Banding cepat','Nampak kesan tempoh pada komitmen bulanan'),
         Row(children:[60,84,108].map((m)=>Expanded(child:Padding(padding:const EdgeInsets.symmetric(horizontal:4),
           child:OutlinedButton(onPressed:()=>setState(()=>months=m), child:Text('${m~/12} tahun'))))).toList()),
         const SizedBox(height:8),
