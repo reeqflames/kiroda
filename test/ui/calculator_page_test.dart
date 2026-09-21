@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kiroda/main.dart';
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
   testWidgets('core calculator journey renders', (tester) async {
     await tester.pumpWidget(const KirodaApp());
     expect(find.text('Kira sebelum pandu.'), findsOneWidget);
