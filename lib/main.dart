@@ -81,6 +81,12 @@ class _CalculatorPageState extends State<CalculatorPage> {
     await SharePlus.instance.share(ShareParams(text:text,subject:'KIRODA'));
   }
 
+  @override
+  void dispose() {
+    price.dispose(); deposit.dispose(); rate.dispose(); budget.dispose();
+    super.dispose();
+  }
+
   @override Widget build(BuildContext context) {
     final x=result;
     return Scaffold(
@@ -107,12 +113,13 @@ class _CalculatorPageState extends State<CalculatorPage> {
           ], onChanged:(v)=>setState(()=>method=v!),
         ), const SizedBox(height:16),
         if (x!=null) resultCard(x) else const Card(child:Padding(padding:EdgeInsets.all(16),child:Text('Semak nilai yang dimasukkan.'))),
+        const SizedBox(height:10),
         if(x!=null) Row(children:[
           Expanded(child:FilledButton.icon(onPressed:saveScenario,icon:const Icon(Icons.bookmark_add_outlined),label:const Text('Simpan'))),
           const SizedBox(width:8),
           Expanded(child:OutlinedButton.icon(onPressed:shareResult,icon:const Icon(Icons.share_outlined),label:const Text('Kongsi'))),
         ]),
-        if(savedScenarios.isNotEmpty) savedScenarioCard(),
+        if(savedScenarios.isNotEmpty) ...[const SizedBox(height:12),savedScenarioCard()],
         const SizedBox(height:24),
         sectionTitle('Banding cepat','Nampak kesan tempoh pada komitmen bulanan'),
         Row(children:[60,84,108].map((m)=>Expanded(child:Padding(padding:const EdgeInsets.symmetric(horizontal:4),
