@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'domain/loan_calculator.dart';
+import 'domain/rate_translator.dart';
 
 void main() => runApp(const KirodaApp());
 
@@ -72,6 +73,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
         const SizedBox(height:8),
         ...quickRows(),
         const Divider(height:32),
+        rateTranslatorCard(),
+        const Divider(height:32),
         Text('Kira dari bajet bulanan',style:Theme.of(context).textTheme.titleMedium), const SizedBox(height:8),
         field(budget,'Bajet bulanan (RM)'), const SizedBox(height:8),
         reverseCard(),
@@ -88,6 +91,22 @@ class _CalculatorPageState extends State<CalculatorPage> {
       final q=calculator.calculate(principal:p-d,annualRatePercent:r,months:m,method:method);
       return ListTile(dense:true,title:Text('${m~/12} tahun'),trailing:Text('${money(q.monthlyPayment)} / bulan'));
     }).toList();
+  }
+
+  Widget rateTranslatorCard() {
+    final p=number(price), d=number(deposit), r=number(rate);
+    if(p==null||d==null||r==null||d>p) return const SizedBox.shrink();
+    final x=RateTranslator(calculator).compareSameNumericRate(principal:p-d, annualRatePercent:r, months:months);
+    return Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Text('Faham kadar',style:Theme.of(context).textTheme.titleMedium),
+      const SizedBox(height:6),
+      Text('${r.toStringAsFixed(2)}% flat tidak sama dengan ${r.toStringAsFixed(2)}% EIR.'),
+      const SizedBox(height:10),
+      line('Flat: jumlah bayaran',money(x.flat.totalPayment)),
+      line('EIR: jumlah bayaran',money(x.reducing.totalPayment)),
+      const SizedBox(height:6),
+      const Text('Perbandingan ini menggunakan nombor kadar yang sama untuk menerangkan perbezaan kaedah kiraan; ia bukan penukaran kadar bank.',style:TextStyle(fontSize:12)),
+    ])));
   }
 
   Widget reverseCard() {
