@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'domain/loan_calculator.dart';
 import 'domain/rate_translator.dart';
 import 'domain/share_text.dart';
+import 'ui/kiroda_theme.dart';
 
 void main() => runApp(const KirodaApp());
 
@@ -11,7 +12,7 @@ class KirodaApp extends StatelessWidget {
   const KirodaApp({super.key});
   @override Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false, title: 'KIRODA',
-    theme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFF008F75)),
+    theme: buildKirodaTheme(),
     home: const CalculatorPage(),
   );
 }
@@ -83,9 +84,11 @@ class _CalculatorPageState extends State<CalculatorPage> {
   @override Widget build(BuildContext context) {
     final x=result;
     return Scaffold(
-      appBar: AppBar(title: const Text('KIRODA')),
+      appBar: AppBar(title: const Text('KIRODA',style:TextStyle(fontWeight:FontWeight.w800,letterSpacing:1.2)),centerTitle:false),
       body: SafeArea(child: ListView(padding: const EdgeInsets.all(16), children: [
         Text('Kira sebelum pandu.', style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height:6),
+        Text('Nampak komitmen sebenar sebelum pilih kereta.',style:Theme.of(context).textTheme.bodyMedium?.copyWith(color:Theme.of(context).colorScheme.onSurfaceVariant)),
         const SizedBox(height:20),
         field(price,'Harga kereta (RM)'), const SizedBox(height:12),
         field(deposit,'Deposit (RM)'), const SizedBox(height:12),
@@ -185,8 +188,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
     decoration:InputDecoration(labelText:label,border:const OutlineInputBorder()), onChanged:(_)=>setState((){}));
 
   Widget resultCard(LoanResult x) => Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    const Text('ANGGARAN BULANAN'), const SizedBox(height:4),
-    Text(money(x.monthlyPayment),style:Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight:FontWeight.w700)),
+    Text('ANGGARAN BULANAN',style:Theme.of(context).textTheme.labelMedium?.copyWith(letterSpacing:1.1,color:Theme.of(context).colorScheme.onSurfaceVariant)), const SizedBox(height:6),
+    Row(crossAxisAlignment:CrossAxisAlignment.end,children:[Text(money(x.monthlyPayment),style:Theme.of(context).textTheme.headlineLarge),const SizedBox(width:6),Padding(padding:const EdgeInsets.only(bottom:5),child:Text('/ bulan',style:Theme.of(context).textTheme.bodyMedium))]),
     const Divider(height:24), line('Jumlah pembiayaan',money(x.principal)),
     line('Jumlah bayaran',money(x.totalPayment)), line('Kos pembiayaan',money(x.financingCost)),
   ])));
