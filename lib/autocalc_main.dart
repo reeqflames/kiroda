@@ -9,6 +9,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'autocalc/finance.dart';
+import 'autocalc/plates_screen.dart';
+import 'autocalc/sa_tools.dart';
 
 const bg=Color(0xFF0D161C), cardColor=Color(0xFF18282E), accent=Color(0xFF6DE5C1), muted=Color(0xFFADC2C0), border=Color(0xFF2F4A4C);
 void main(){WidgetsFlutterBinding.ensureInitialized();runApp(const AutoCalcApp());}
@@ -28,8 +30,8 @@ class AutoHome extends StatefulWidget{
  @override State<AutoHome> createState()=>_AutoHomeState();
 }
 class _AutoHomeState extends State<AutoHome>{
- final loan=TextEditingController(text:'96120'),rate=TextEditingController(text:'2.7'),label=TextEditingController(text:'Car Loan Estimate'),sa=TextEditingController(),phone=TextEditingController();
- int years=9,tab=0,paid=12; LoanMode mode=LoanMode.flat;List<String> history=[];
+ final loan=TextEditingController(),rate=TextEditingController(),label=TextEditingController(text:'Car Loan Estimate'),sa=TextEditingController(),phone=TextEditingController();
+ int? years; int tab=0,paid=0; LoanMode mode=LoanMode.flat;List<String> history=[];
  @override void initState(){super.initState();loan.addListener(refresh);rate.addListener(refresh);label.addListener(refresh);load();}
  void refresh(){if(mounted)setState((){});}
  @override void dispose(){loan.dispose();rate.dispose();label.dispose();sa.dispose();phone.dispose();super.dispose();}
@@ -37,7 +39,7 @@ class _AutoHomeState extends State<AutoHome>{
    history=p.getStringList('ac_quotes')??[];sa.text=p.getString('ac_sa')??'';phone.text=p.getString('ac_phone')??'';
  });}
  LoanPlan? get calc{final a=double.tryParse(loan.text.replaceAll(',','')),r=double.tryParse(rate.text);
-  if(a==null||r==null)return null;try{return calculateLoan(amount:a,ratePercent:r,years:years,mode:mode);}catch(_){return null;}}
+  if(a==null||r==null||years==null)return null;try{return calculateLoan(amount:a,ratePercent:r,years:years!,mode:mode);}catch(_){return null;}}
  void info(String t){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(t)));}
  Future<void> save()async{final x=calc;if(x==null)return;
   setState((){history.insert(0,jsonEncode({'title':label.text,'amount':x.amount,'rate':x.ratePercent,'years':years,'mode':mode.name}));if(history.length>60)history.removeLast();});
@@ -56,11 +58,12 @@ class _AutoHomeState extends State<AutoHome>{
      Text('SA EDITION  •  AD-FREE',style:TextStyle(fontSize:10,letterSpacing:1,color:muted))])]),
     actions:[IconButton(tooltip:'Tools',onPressed:tools,icon:const Icon(Icons.grid_view_rounded,color:muted)),
      IconButton(tooltip:'SA Profile',onPressed:profile,icon:const Icon(Icons.tune_rounded,color:muted))]),
-   body:SafeArea(child:tab==0?calculator(x):tab==1?schedule(x):saved()),
+   body:SafeArea(child:tab==0?calculator(x):tab==1?schedule(x):tab==2?const LatestPlatesScreen():saved()),
    bottomNavigationBar:NavigationBar(height:68,backgroundColor:const Color(0xFF122229),indicatorColor:const Color(0xFF205244),selectedIndex:tab,
     onDestinationSelected:(v)=>setState(()=>tab=v),destinations:const [
      NavigationDestination(icon:Icon(Icons.calculate_outlined),selectedIcon:Icon(Icons.calculate,color:accent),label:'Calculator'),
      NavigationDestination(icon:Icon(Icons.calendar_month_outlined),selectedIcon:Icon(Icons.calendar_month,color:accent),label:'Schedule'),
+     NavigationDestination(icon:Icon(Icons.pin_outlined),selectedIcon:Icon(Icons.pin,color:accent),label:'Plates'),
      NavigationDestination(icon:Icon(Icons.bookmark_border),selectedIcon:Icon(Icons.bookmark,color:accent),label:'Saved'),
     ]));
  }
@@ -89,13 +92,17 @@ class _AutoHomeState extends State<AutoHome>{
    Expanded(child:TextField(controller:rate,keyboardType:const TextInputType.numberWithOptions(decimal:true),
     decoration:const InputDecoration(labelText:'Annual Interest (%)',prefixIcon:Icon(Icons.percent)))),
    const SizedBox(width:10),
-   Expanded(child:DropdownButtonFormField<int>(value:years,isExpanded:true,
+   Expanded(child:DropdownButtonFormField<int>(initialValue:years,isExpanded:true,
+    hint:const Text('Choose'),
     decoration:const InputDecoration(labelText:'Years',prefixIcon:Icon(Icons.timelapse)),
     items:List.generate(9,(i)=>DropdownMenuItem(value:i+1,child:Text('${i+1} years'))),
-    onChanged:(v)=>setState((){years=v??9;paid=0;}))),
+    onChanged:(v)=>setState((){years=v;paid=0;}))),
   ]),
   const SizedBox(height:18),
-  if(x==null)panel(const Text('Please enter a valid loan amount and interest rate.'))else ...[
+  if(x==null)panel(const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Icon(Icons.edit_note_rounded,color:accent,size:30),SizedBox(height:8),
+    Text('Ready when you are',style:TextStyle(fontWeight:FontWeight.bold,fontSize:17)),
+    SizedBox(height:5),Text('Enter Loan Amount, Interest and Years. Your monthly estimate will appear automatically.',style:TextStyle(color:muted,fontSize:12))]))else ...[
    Container(padding:const EdgeInsets.all(20),decoration:BoxDecoration(
     gradient:const LinearGradient(colors:[Color(0xFF1D4C40),Color(0xFF19353A),Color(0xFF15272F)]),
     border:Border.all(color:const Color(0xFF478B78)),borderRadius:BorderRadius.circular(23)),
@@ -222,11 +229,15 @@ class _AutoHomeState extends State<AutoHome>{
  void tools()=>showModalBottomSheet<void>(context:context,backgroundColor:cardColor,showDragHandle:true,
   builder:(c)=>SafeArea(child:Padding(padding:const EdgeInsets.all(18),child:Column(mainAxisSize:MainAxisSize.min,children:[
    const Text('SA TOOLS',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
-   ListTile(leading:const Icon(Icons.pin_outlined,color:accent),title:const Text('Platehaus · Running Numbers'),
-    onTap:(){Navigator.pop(c);go('https://www.platehaus.my/running-numbers');}),
+   ListTile(leading:const Icon(Icons.pin_outlined,color:accent),title:const Text('Latest Plates · In-app'),
+    onTap:(){Navigator.pop(c);setState(()=>tab=2);}),
+   ListTile(leading:const Icon(Icons.shield_outlined,color:accent),title:const Text('Insurance Estimate'),
+    onTap:(){Navigator.pop(c);Navigator.of(context).push(MaterialPageRoute(builder:(_)=>const InsuranceTool()));}),
+   ListTile(leading:const Icon(Icons.car_repair_outlined,color:accent),title:const Text('Road Tax Calculator'),
+    onTap:(){Navigator.pop(c);Navigator.of(context).push(MaterialPageRoute(builder:(_)=>const RoadTaxTool()));}),
    ListTile(leading:const Icon(Icons.verified_outlined,color:accent),title:const Text('JPJ · Official Plate Check'),
     onTap:(){Navigator.pop(c);go('https://www.jpj.gov.my/semakan-nombor-pendaftaran-terkini/');}),
-   const Text('Insurance, road tax and bank comparison are planned for the next beta.',style:TextStyle(fontSize:11,color:muted)),
+   const Text('Bank comparison, full OTR and EV road tax are planned for future builds.',style:TextStyle(fontSize:11,color:muted)),
   ]))));
  void profile()=>showModalBottomSheet<void>(context:context,isScrollControlled:true,backgroundColor:cardColor,
   showDragHandle:true,builder:(c)=>Padding(padding:EdgeInsets.fromLTRB(18,4,18,MediaQuery.viewInsetsOf(c).bottom+22),
