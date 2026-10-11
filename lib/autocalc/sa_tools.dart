@@ -32,173 +32,167 @@ class InsuranceTool extends StatefulWidget {
  const InsuranceTool({super.key});
  @override State<InsuranceTool> createState()=>_InsuranceToolState();
 }
-
 class _InsuranceToolState extends State<InsuranceTool>{
  final insured=TextEditingController();
  final windscreenAmount=TextEditingController();
- int? selectedEngineBand;
  InsuranceCover cover=InsuranceCover.comprehensive;
  InsuranceRegion region=InsuranceRegion.peninsular;
+ int? selectedEngineBand;
  double? ncd;
- bool windscreen=false;
-
+ bool windscreen=false, showBreakdown=false;
  @override void initState(){
   super.initState();
-  for(final input in [insured,windscreenAmount]){input.addListener(refresh);}
+  insured.addListener(refresh);windscreenAmount.addListener(refresh);
  }
  void refresh(){if(mounted)setState((){});}
- @override void dispose(){
-  insured.dispose();windscreenAmount.dispose();super.dispose();
- }
+ @override void dispose(){insured.dispose();windscreenAmount.dispose();super.dispose();}
+
+ InputDecoration _input({String? hint})=>InputDecoration(
+   hintText:hint,isDense:true,contentPadding:const EdgeInsets.symmetric(horizontal:12,vertical:12),
+   filled:true,fillColor:const Color(0xFF13252B),
+   border:OutlineInputBorder(borderRadius:BorderRadius.circular(12),
+     borderSide:const BorderSide(color:_stroke)),
+   enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(12),
+     borderSide:const BorderSide(color:_stroke)),
+ );
+ Widget _field(String title, Widget control)=>Column(
+   crossAxisAlignment:CrossAxisAlignment.start,mainAxisSize:MainAxisSize.min,
+   children:[
+    SizedBox(height:19,child:Text(title,maxLines:1,overflow:TextOverflow.ellipsis,
+      style:const TextStyle(color:_muted,fontSize:11,fontWeight:FontWeight.w600))),
+    const SizedBox(height:4),
+    SizedBox(height:49,child:control),
+   ]);
+ Widget _group({required Widget left,required Widget right})=>Row(
+   crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Expanded(child:left),const SizedBox(width:10),Expanded(child:right),
+   ]);
 
  @override Widget build(BuildContext context){
   final comprehensive=cover==InsuranceCover.comprehensive;
   final glassSelected=comprehensive&&windscreen;
   final glassValue=glassSelected?parsePositive(windscreenAmount.text):0.0;
   final estimate=estimateMotorInsurance(
-   sumInsured:parsePositive(insured.text),
-   engineCc:selectedEngineBand,
+   sumInsured:parsePositive(insured.text),engineCc:selectedEngineBand,
    ncdPercent:ncd,cover:cover,region:region,
    windscreenSum:glassValue??double.nan,
   );
-  return Scaffold(backgroundColor:_bg,appBar:AppBar(title:const Text('Insurance Estimate')),
-   body:ListView(padding:const EdgeInsets.fromLTRB(17,12,17,27),children:[
-    const Text('Car Insurance Calculator',
-     style:TextStyle(fontSize:22,fontWeight:FontWeight.w800)),
-    const SizedBox(height:5),
-    const Text('Estimate automatically from your vehicle details.',
-     style:TextStyle(color:_muted,fontSize:12)),
-    const SizedBox(height:16),
-    const Text('Type of Coverage',style:TextStyle(fontWeight:FontWeight.w700,fontSize:13)),
-    const SizedBox(height:8),
-    SegmentedButton<InsuranceCover>(
-     selected:{cover},
-     segments:const [
-      ButtonSegment(value:InsuranceCover.comprehensive,
-       label:Text('Comprehensive',style:TextStyle(fontSize:12))),
-      ButtonSegment(value:InsuranceCover.thirdParty,
-       label:Text('Third Party',style:TextStyle(fontSize:12))),
-     ],
-     onSelectionChanged:(selection)=>setState(()=>cover=selection.first),
-     style:ButtonStyle(visualDensity:VisualDensity.compact),
-    ),
-    const SizedBox(height:15),
-    TextField(
-     controller:insured,
-     keyboardType:const TextInputType.numberWithOptions(decimal:true),
-     inputFormatters:const [GroupedNumberInputFormatter()],
-     decoration:const InputDecoration(
-      labelText:'Market Value / Sum Insured (RM)',
-      hintText:'e.g. 50,000',
+  return Scaffold(
+   backgroundColor:_bg,
+   appBar:AppBar(toolbarHeight:54,title:const Text('Insurance Estimate',style:TextStyle(fontSize:19,fontWeight:FontWeight.w800))),
+   body:SafeArea(child:ListView(
+    padding:const EdgeInsets.fromLTRB(16,9,16,24),
+    children:[
+     SizedBox(height:46,child:SegmentedButton<InsuranceCover>(
+      selected:{cover},
+      segments:const [
+       ButtonSegment(value:InsuranceCover.comprehensive,
+        label:Text('Comprehensive',style:TextStyle(fontSize:12))),
+       ButtonSegment(value:InsuranceCover.thirdParty,
+        label:Text('Third Party',style:TextStyle(fontSize:12))),
+      ],
+      onSelectionChanged:(v)=>setState(()=>cover=v.first),
+      style:const ButtonStyle(visualDensity:VisualDensity.compact),
+     )),
+     const SizedBox(height:12),
+     _field('Market Value / Sum Insured (RM)',
+       TextField(controller:insured,
+         keyboardType:const TextInputType.numberWithOptions(decimal:true),
+         inputFormatters:const [GroupedNumberInputFormatter()],
+         decoration:_input(hint:'e.g. 50,000'))),
+     const SizedBox(height:10),
+     _group(
+      left:_field('Engine Capacity',
+        DropdownButtonFormField<int>(
+         initialValue:selectedEngineBand,isExpanded:true,
+         hint:const Text('Select CC',style:TextStyle(fontSize:12)),
+         decoration:_input(),
+         items:const [
+          DropdownMenuItem(value:1400,child:Text('0 – 1,400 cc',style:TextStyle(fontSize:12))),
+          DropdownMenuItem(value:1650,child:Text('1,401 – 1,650 cc',style:TextStyle(fontSize:12))),
+          DropdownMenuItem(value:2200,child:Text('1,651 – 2,200 cc',style:TextStyle(fontSize:12))),
+          DropdownMenuItem(value:3050,child:Text('2,201 – 3,050 cc',style:TextStyle(fontSize:12))),
+          DropdownMenuItem(value:4100,child:Text('3,051 – 4,100 cc',style:TextStyle(fontSize:12))),
+          DropdownMenuItem(value:4250,child:Text('4,101 – 4,250 cc',style:TextStyle(fontSize:12))),
+          DropdownMenuItem(value:4400,child:Text('4,251 – 4,400 cc',style:TextStyle(fontSize:12))),
+          DropdownMenuItem(value:4401,child:Text('Over 4,400 cc',style:TextStyle(fontSize:12))),
+         ],
+         onChanged:(v)=>setState(()=>selectedEngineBand=v),
+        )),
+      right:_field('Location',
+        DropdownButtonFormField<InsuranceRegion>(
+          initialValue:region,isExpanded:true,
+          decoration:_input(),
+          items:const [
+           DropdownMenuItem(value:InsuranceRegion.peninsular,
+            child:Text('Peninsular',style:TextStyle(fontSize:12))),
+           DropdownMenuItem(value:InsuranceRegion.eastMalaysia,
+            child:Text('Sabah / Sarawak',style:TextStyle(fontSize:12))),
+          ],
+          onChanged:(v){if(v!=null)setState(()=>region=v);},
+        )),
      ),
-    ),
-    if(!comprehensive)...[
-     const SizedBox(height:5),
-     const Text(
-      'For reference only. Third Party covers third-party liability, '
-      'not damage to your own car. Market value does not affect this estimate.',
-      style:TextStyle(color:_muted,fontSize:11),
+     const SizedBox(height:10),
+     _group(
+      left:_field('NCD',
+        DropdownButtonFormField<double>(
+          initialValue:ncd,isExpanded:true,decoration:_input(),
+          hint:const Text('Select NCD',style:TextStyle(fontSize:12)),
+          items:const [0.0,25.0,30.0,38.33,45.0,55.0].map((n)=>
+           DropdownMenuItem<double>(value:n,
+            child:Text(n==38.33?'38.33%':n.toStringAsFixed(0)+'%',
+             style:const TextStyle(fontSize:12)))).toList(),
+          onChanged:(v)=>setState(()=>ncd=v),
+        )),
+      right:_field('Windscreen (optional)',
+        Row(children:[
+         Expanded(child:TextField(
+           controller:windscreenAmount,enabled:glassSelected,
+           keyboardType:const TextInputType.numberWithOptions(decimal:true),
+           inputFormatters:const [GroupedNumberInputFormatter()],
+           decoration:_input(hint:comprehensive?'Amount RM':'N/A'))),
+         Transform.scale(scale:.75,child:Switch.adaptive(
+           value:glassSelected,onChanged:comprehensive
+             ? (v)=>setState(()=>windscreen=v) : null,
+           activeColor:_mint)),
+        ])),
      ),
-    ],
-    const SizedBox(height:11),
-    DropdownButtonFormField<int>(
-     initialValue:selectedEngineBand,
-     isExpanded:true,
-     hint:const Text('Select engine capacity'),
-     decoration:const InputDecoration(labelText:'Engine Capacity'),
-     items:const [
-      DropdownMenuItem(value:1400,child:Text('0 – 1,400 cc')),
-      DropdownMenuItem(value:1650,child:Text('1,401 – 1,650 cc')),
-      DropdownMenuItem(value:2200,child:Text('1,651 – 2,200 cc')),
-      DropdownMenuItem(value:3050,child:Text('2,201 – 3,050 cc')),
-      DropdownMenuItem(value:4100,child:Text('3,051 – 4,100 cc')),
-      DropdownMenuItem(value:4250,child:Text('4,101 – 4,250 cc')),
-      DropdownMenuItem(value:4400,child:Text('4,251 – 4,400 cc')),
-      DropdownMenuItem(value:4401,child:Text('Over 4,400 cc')),
-     ],
-     onChanged:(v)=>setState(()=>selectedEngineBand=v),
-    ),
-    const SizedBox(height:11),
-    DropdownButtonFormField<InsuranceRegion>(
-     initialValue:region,isExpanded:true,
-     decoration:const InputDecoration(labelText:'Location'),
-     items:const [
-      DropdownMenuItem(value:InsuranceRegion.peninsular,
-       child:Text('Peninsular Malaysia')),
-      DropdownMenuItem(value:InsuranceRegion.eastMalaysia,
-       child:Text('Sabah / Sarawak')),
-     ],
-     onChanged:(next){if(next!=null)setState(()=>region=next);},
-    ),
-    const SizedBox(height:11),
-    DropdownButtonFormField<double>(
-     initialValue:ncd,isExpanded:true,
-     hint:const Text('Choose NCD'),
-     decoration:const InputDecoration(labelText:'No Claim Discount (NCD)'),
-     items:const [0.0,25.0,30.0,38.33,45.0,55.0].map((v)=>
-      DropdownMenuItem<double>(value:v,
-       child:Text(v==38.33?'38.33%':v.toStringAsFixed(0)+'%'))).toList(),
-     onChanged:(next)=>setState(()=>ncd=next),
-    ),
-    if(comprehensive)...[
      const SizedBox(height:14),
-     Material(
-      color:_panel,
-      shape:RoundedRectangleBorder(
-       borderRadius:BorderRadius.circular(16),
-       side:const BorderSide(color:_stroke)),
-      clipBehavior:Clip.antiAlias,
-      child:SwitchListTile.adaptive(
-       contentPadding:const EdgeInsets.symmetric(horizontal:14),
-       title:const Text('Windscreen Cover',
-        style:TextStyle(fontSize:14,fontWeight:FontWeight.w700)),
-       subtitle:const Text('Optional',style:TextStyle(fontSize:11,color:_muted)),
-       activeColor:_mint,value:windscreen,
-       onChanged:(checked)=>setState(()=>windscreen=checked),
-      ),
-     ),
-     if(windscreen)...[
-      const SizedBox(height:10),
-      TextField(
-       controller:windscreenAmount,
-       keyboardType:const TextInputType.numberWithOptions(decimal:true),
-       inputFormatters:const [GroupedNumberInputFormatter()],
-       decoration:const InputDecoration(
-        labelText:'Windscreen Sum Insured (RM)',
-        hintText:'e.g. 3,000',
-       ),
-      ),
-      const SizedBox(height:6),
-      const Text('Indicative premium: 15% of windscreen cover.',
-       style:TextStyle(color:_muted,fontSize:11)),
-     ]
+     Container(
+      padding:const EdgeInsets.fromLTRB(15,14,15,12),
+      decoration:BoxDecoration(color:const Color(0xFF18332F),
+       border:Border.all(color:const Color(0xFF37675C)),
+       borderRadius:BorderRadius.circular(17)),
+      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+       const Text('ESTIMATED YEARLY INSURANCE',
+        style:TextStyle(fontSize:10,letterSpacing:1,color:_muted)),
+       const SizedBox(height:4),
+       Text(estimate==null?'—':money(estimate.total),
+        style:const TextStyle(fontSize:29,color:_mint,fontWeight:FontWeight.w900)),
+       const SizedBox(height:8),
+       InkWell(onTap:estimate==null?null:()=>setState(()=>showBreakdown=!showBreakdown),
+        child:Row(children:[
+         const Expanded(child:Text('Premium Breakdown',
+          style:TextStyle(fontSize:11,fontWeight:FontWeight.w600,color:_muted))),
+         Icon(showBreakdown?Icons.expand_less:Icons.expand_more,color:_mint,size:20),
+        ])),
+       if(showBreakdown&&estimate!=null)...[
+        const Divider(color:_stroke,height:16),
+        _line('Basic premium',money(estimate.basicPremium)),
+        _line('NCD saving','− '+money(estimate.ncdSaving)),
+        if(glassSelected)_line('Windscreen',money(estimate.windscreenPremium)),
+        _line('SST · 8%',money(estimate.serviceTax)),
+        _line('Stamp duty',money(estimate.stampDuty)),
+       ]
+      ])),
+     const SizedBox(height:10),
+     Text(comprehensive
+       ? 'Indicative tariff-based estimate, not an insurer quote.'
+       : 'Third Party covers liability only. Sum Insured is retained for switching back.',
+      style:const TextStyle(fontSize:11,color:_muted)),
     ],
-    const SizedBox(height:17),
-    if(estimate==null)
-     const Padding(padding:EdgeInsets.symmetric(vertical:10),
-      child:Text('Enter the required vehicle details to see the estimated premium.',
-       style:TextStyle(color:_muted,fontSize:12)))
-    else _card(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     const Text('ESTIMATED YEARLY INSURANCE',
-      style:TextStyle(color:_muted,fontSize:11,letterSpacing:1)),
-     const SizedBox(height:8),
-     FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
-      child:Text(money(estimate.total),
-       style:const TextStyle(fontSize:32,fontWeight:FontWeight.w900,color:_mint))),
-     const Divider(color:_stroke,height:26),
-     _line('Estimated basic premium',money(estimate.basicPremium)),
-     _line('NCD discount','− '+money(estimate.ncdSaving)),
-     if(glassSelected)_line('Windscreen premium',money(estimate.windscreenPremium)),
-     _line('SST (8%)',money(estimate.serviceTax)),
-     _line('Stamp duty',money(estimate.stampDuty)),
-    ])),
-    const SizedBox(height:12),
-    const Text(
-     'Baseline based on the former Malaysian Motor Tariff, not a live insurer quote. '
-     'Current premiums vary by insurer, driver, car model and risk profile. '
-     'Confirm the final amount with your insurer.',
-     style:TextStyle(color:_muted,fontSize:11)),
-   ]));
+   )),
+  );
  }
 }
 class RoadTaxTool extends StatefulWidget{
