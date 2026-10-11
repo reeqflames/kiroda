@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'autocalc/finance.dart';
+import 'autocalc/number_format.dart';
 import 'autocalc/plates_screen.dart';
 import 'autocalc/sa_tools.dart';
 
@@ -46,7 +47,7 @@ class _AutoHomeState extends State<AutoHome>{
   final p=await SharedPreferences.getInstance();await p.setStringList('ac_quotes',history);info('Saved offline');
  }
  void restore(String q){final m=jsonDecode(q) as Map<String,dynamic>;
-  loan.text=(m['amount'] as num).toString();rate.text=(m['rate'] as num).toString();label.text=m['title'].toString();
+  loan.text=groupedDigits((m['amount'] as num).toString());rate.text=(m['rate'] as num).toString();label.text=m['title'].toString();
   setState((){years=(m['years'] as num).toInt();mode=m['mode']=='eir'?LoanMode.eir:LoanMode.flat;tab=0;});
  }
  @override Widget build(BuildContext context){final x=calc;
@@ -86,6 +87,7 @@ class _AutoHomeState extends State<AutoHome>{
    child:Row(children:[modeTab('Flat Rate',LoanMode.flat),modeTab('Reducing · EIR',LoanMode.eir)])),
   const SizedBox(height:14),
   TextField(controller:loan,keyboardType:const TextInputType.numberWithOptions(decimal:true),
+   inputFormatters:const [GroupedNumberInputFormatter()],
    decoration:const InputDecoration(labelText:'Loan Amount (RM)',prefixIcon:Icon(Icons.account_balance_wallet_outlined))),
   const SizedBox(height:12),
   Row(children:[
