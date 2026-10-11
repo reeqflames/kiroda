@@ -135,7 +135,7 @@ class _AutoHomeState extends State<AutoHome>{
  ])));
  Widget schedule(LoanPlan? x){
   if(x==null)return const Center(child:Text('Enter valid inputs in Calculator first.'));
-  final completed=paid.clamp(0,x.rows.length),ratio=x.amount/x.totalRepayment;
+  final completed=(paid.clamp(0,x.rows.length) as int),ratio=x.amount/x.totalRepayment;
   return ListView(padding:const EdgeInsets.fromLTRB(16,5,16,32),children:[
    title('Full Amortization Schedule',mode==LoanMode.eir?'Reducing balance · Effective Annual Rate':'Flat-rate · Illustrative payment allocation'),
    panel(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
