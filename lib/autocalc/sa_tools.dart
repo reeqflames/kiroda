@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'number_format.dart';
 const _bg=Color(0xFF0D161C),_panel=Color(0xFF18282E),_mint=Color(0xFF6DE5C1),_muted=Color(0xFFADC2C0),_stroke=Color(0xFF30494C);
 double? parsePositive(String value,{bool zero=false}){
  final n=double.tryParse(value.replaceAll(',','').trim());
@@ -33,7 +34,7 @@ double? peninsularRoadTax(int cc,{required bool nonSaloon}){
  if(cc<=3000)return (nonSaloon?840:880)+(cc-2500)*(nonSaloon?1.60:2.50);
  return (nonSaloon?1640:2130)+(cc-3000)*(nonSaloon?1.60:4.50);
 }
-String money(double n)=>'RM '+n.toStringAsFixed(2);
+String money(double n)=>currencyAmount(n);
 Widget _card(Widget child)=>Container(padding:const EdgeInsets.all(17),decoration:BoxDecoration(color:_panel,
  border:Border.all(color:_stroke),borderRadius:BorderRadius.circular(18)),child:child);
 Widget _line(String label,String value,{bool highlight=false})=>Padding(padding:const EdgeInsets.symmetric(vertical:7),
@@ -61,6 +62,7 @@ class _InsuranceToolState extends State<InsuranceTool>{
      style:TextStyle(color:_muted,fontSize:12)),
     const SizedBox(height:18),
     TextField(controller:base,keyboardType:const TextInputType.numberWithOptions(decimal:true),
+     inputFormatters:const [GroupedNumberInputFormatter()],
      decoration:const InputDecoration(labelText:'Basic premium before NCD (RM)')),
     const SizedBox(height:10),
     DropdownButtonFormField<double>(value:ncd,
@@ -70,6 +72,7 @@ class _InsuranceToolState extends State<InsuranceTool>{
      onChanged:(v)=>setState(()=>ncd=v)),
     const SizedBox(height:10),
     TextField(controller:addon,keyboardType:const TextInputType.numberWithOptions(decimal:true),
+     inputFormatters:const [GroupedNumberInputFormatter()],
      decoration:const InputDecoration(labelText:'Other cover / add-ons (RM)',hintText:'Enter 0 if none')),
     const SizedBox(height:10),
     Row(children:[
@@ -77,6 +80,7 @@ class _InsuranceToolState extends State<InsuranceTool>{
       decoration:const InputDecoration(labelText:'SST (%)'))),
      const SizedBox(width:10),
      Expanded(child:TextField(controller:stamp,keyboardType:const TextInputType.numberWithOptions(decimal:true),
+      inputFormatters:const [GroupedNumberInputFormatter()],
       decoration:const InputDecoration(labelText:'Stamp duty (RM)'))),
     ]),
     const SizedBox(height:17),
@@ -112,7 +116,7 @@ class _RoadTaxToolState extends State<RoadTaxTool>{
  void refresh(){if(mounted)setState((){});}
  @override void dispose(){cc.dispose();super.dispose();}
  @override Widget build(BuildContext context){
-  final v=int.tryParse(cc.text);
+  final v=int.tryParse(cc.text.replaceAll(',',''));
   final estimate=v==null?null:peninsularRoadTax(v,nonSaloon:nonSaloon);
   return Scaffold(backgroundColor:_bg,appBar:AppBar(title:const Text('Road Tax Calculator')),
    body:ListView(padding:const EdgeInsets.all(17),children:[
@@ -121,7 +125,8 @@ class _RoadTaxToolState extends State<RoadTaxTool>{
      style:TextStyle(fontSize:12,color:_muted)),
     const SizedBox(height:18),
     TextField(controller:cc,keyboardType:TextInputType.number,
-     decoration:const InputDecoration(labelText:'Engine capacity (cc)',hintText:'e.g. 1498')),
+     inputFormatters:const [GroupedNumberInputFormatter(decimalPlaces:0)],
+     decoration:const InputDecoration(labelText:'Engine capacity (cc)',hintText:'e.g. 1,498')),
     const SizedBox(height:14),
     SegmentedButton<bool>(segments:const [
      ButtonSegment(value:false,label:Text('Saloon')),
@@ -132,7 +137,7 @@ class _RoadTaxToolState extends State<RoadTaxTool>{
      _card(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       const Text('ESTIMATED ANNUAL ROAD TAX',style:TextStyle(fontSize:11,color:_muted,letterSpacing:1)),
       const SizedBox(height:10),Text(money(estimate),style:const TextStyle(fontSize:32,fontWeight:FontWeight.w900,color:_mint)),
-      const SizedBox(height:11),_line('Engine capacity','$v cc'),
+      const SizedBox(height:11),_line('Engine capacity',groupedDigits(v.toString())+' cc'),
       _line('Usage','Private ${nonSaloon?'non-saloon':'saloon'}'),
       _line('Region','Peninsular Malaysia'),
      ])),
