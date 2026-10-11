@@ -41,68 +41,134 @@ Widget _line(String label,String value,{bool highlight=false})=>Padding(padding:
  child:Row(children:[Expanded(child:Text(label,style:const TextStyle(fontSize:12,color:_muted))),
   Text(value,style:TextStyle(fontSize:14,fontWeight:FontWeight.bold,color:highlight?_mint:Colors.white))]));
 Future<void> _open(String url) async { await launchUrl(Uri.parse(url),mode:LaunchMode.externalApplication); }
+/// 15% is a commonly advertised windscreen add-on rate, not a universal quote.
+double estimateWindscreenPremium(double sumInsured) =>
+    roundCents(sumInsured * 0.15);
+
+enum CoverType { comprehensive, thirdParty }
+
 class InsuranceTool extends StatefulWidget {
  const InsuranceTool({super.key});
  @override State<InsuranceTool> createState()=>_InsuranceToolState();
 }
 class _InsuranceToolState extends State<InsuranceTool>{
- final base=TextEditingController(),addon=TextEditingController(),sst=TextEditingController(text:'8'),stamp=TextEditingController(text:'10');
+ final base=TextEditingController();
+ final glassCover=TextEditingController();
  double? ncd;
- @override void initState(){super.initState();for(final c in [base,addon,sst,stamp]){c.addListener(update);}}
+ CoverType cover=CoverType.comprehensive;
+ bool windscreen=false;
+ @override void initState(){
+  super.initState();
+  base.addListener(update);
+  glassCover.addListener(update);
+ }
  void update(){if(mounted)setState((){});}
- @override void dispose(){for(final c in [base,addon,sst,stamp]){c.dispose();}super.dispose();}
+ @override void dispose(){base.dispose();glassCover.dispose();super.dispose();}
  @override Widget build(BuildContext context){
-  final r=estimateInsurance(base:parsePositive(base.text),extra:parsePositive(addon.text,zero:true),
-   sstPercent:parsePositive(sst.text,zero:true),stamp:parsePositive(stamp.text,zero:true),ncd:ncd);
+  final hasGlass=cover==CoverType.comprehensive&&windscreen;
+  final insuredGlass=hasGlass?parsePositive(glassCover.text):0.0;
+  final glassPremium=insuredGlass==null?null:estimateWindscreenPremium(insuredGlass);
+  final premium=estimateInsurance(
+   base:parsePositive(base.text),
+   extra:glassPremium,
+   sstPercent:8,
+   stamp:10,
+   ncd:ncd,
+  );
   return Scaffold(backgroundColor:_bg,appBar:AppBar(title:const Text('Insurance Estimate')),
-   body:ListView(padding:const EdgeInsets.all(17),children:[
-    const Text('Private Car Insurance',style:TextStyle(fontSize:22,fontWeight:FontWeight.w800)),
-    const SizedBox(height:6),
-    const Text('Enter the basic premium quoted by an insurer, BEFORE NCD. This does not generate an insurer premium.',
+   body:ListView(padding:const EdgeInsets.fromLTRB(17,12,17,28),children:[
+    const Text('Private Car Insurance',
+     style:TextStyle(fontSize:22,fontWeight:FontWeight.w800)),
+    const SizedBox(height:5),
+    const Text('Use the basic premium provided by your insurer.',
      style:TextStyle(color:_muted,fontSize:12)),
-    const SizedBox(height:18),
-    TextField(controller:base,keyboardType:const TextInputType.numberWithOptions(decimal:true),
+    const SizedBox(height:16),
+    const Text('Type of Coverage',style:TextStyle(fontWeight:FontWeight.w700,fontSize:13)),
+    const SizedBox(height:9),
+    SegmentedButton<CoverType>(
+      segments:const [
+       ButtonSegment(value:CoverType.comprehensive,label:Text('Comprehensive')),
+       ButtonSegment(value:CoverType.thirdParty,label:Text('Third Party')),
+      ],
+      selected:{cover},
+      onSelectionChanged:(v)=>setState(()=>cover=v.first),
+      style:ButtonStyle(visualDensity:VisualDensity.compact),
+    ),
+    const SizedBox(height:15),
+    TextField(
+     controller:base,keyboardType:const TextInputType.numberWithOptions(decimal:true),
      inputFormatters:const [GroupedNumberInputFormatter()],
-     decoration:const InputDecoration(labelText:'Basic premium before NCD (RM)')),
-    const SizedBox(height:10),
-    DropdownButtonFormField<double>(value:ncd,
-     hint:const Text('Choose NCD'),decoration:const InputDecoration(labelText:'NCD (%)'),
-     items:[0.0,25.0,30.0,38.33,45.0,55.0].map((v)=>
-      DropdownMenuItem<double>(value:v,child:Text('${v.toStringAsFixed(v==38.33?2:0)}%'))).toList(),
-     onChanged:(v)=>setState(()=>ncd=v)),
-    const SizedBox(height:10),
-    TextField(controller:addon,keyboardType:const TextInputType.numberWithOptions(decimal:true),
-     inputFormatters:const [GroupedNumberInputFormatter()],
-     decoration:const InputDecoration(labelText:'Other cover / add-ons (RM)',hintText:'Enter 0 if none')),
-    const SizedBox(height:10),
-    Row(children:[
-     Expanded(child:TextField(controller:sst,keyboardType:const TextInputType.numberWithOptions(decimal:true),
-      decoration:const InputDecoration(labelText:'SST (%)'))),
-     const SizedBox(width:10),
-     Expanded(child:TextField(controller:stamp,keyboardType:const TextInputType.numberWithOptions(decimal:true),
-      inputFormatters:const [GroupedNumberInputFormatter()],
-      decoration:const InputDecoration(labelText:'Stamp duty (RM)'))),
-    ]),
+     decoration:const InputDecoration(
+      labelText:'Basic Premium Before NCD (RM)',
+      hintText:'e.g. 2,500',
+     ),
+    ),
+    const SizedBox(height:11),
+    DropdownButtonFormField<double>(
+      key:ValueKey(ncd),
+      initialValue:ncd,
+      hint:const Text('Select NCD'),
+      decoration:const InputDecoration(labelText:'No Claim Discount (NCD)'),
+      items:const [0.0,25.0,30.0,38.33,45.0,55.0].map((v)=>
+        DropdownMenuItem<double>(value:v,
+          child:Text(v==38.33?'38.33%':v.toStringAsFixed(0)+'%'))).toList(),
+      onChanged:(value)=>setState(()=>ncd=value),
+    ),
+    if(cover==CoverType.comprehensive)...[
+      const SizedBox(height:14),
+      Container(
+       decoration:BoxDecoration(color:_panel,borderRadius:BorderRadius.circular(16),
+        border:Border.all(color:_stroke)),
+       child:SwitchListTile.adaptive(
+        contentPadding:const EdgeInsets.symmetric(horizontal:14),
+        title:const Text('Windscreen Cover',style:TextStyle(fontSize:14,fontWeight:FontWeight.w700)),
+        subtitle:const Text('Optional',style:TextStyle(fontSize:11,color:_muted)),
+        activeColor:_mint,value:windscreen,
+        onChanged:(v)=>setState(()=>windscreen=v),
+       ),
+      ),
+      if(windscreen)...[
+       const SizedBox(height:10),
+       TextField(
+        controller:glassCover,
+        inputFormatters:const [GroupedNumberInputFormatter()],
+        keyboardType:const TextInputType.numberWithOptions(decimal:true),
+        decoration:const InputDecoration(
+         labelText:'Windscreen Sum Insured (RM)',hintText:'e.g. 3,000'),
+       ),
+       const SizedBox(height:6),
+       Text(glassPremium==null
+        ? 'Estimated windscreen premium: 15% of sum insured'
+        : 'Estimated windscreen premium: '+money(glassPremium)+' (15%)',
+        style:const TextStyle(color:_muted,fontSize:11)),
+      ]
+    ],
     const SizedBox(height:17),
-    if(r==null)_card(const Text('Enter basic premium, NCD and add-ons to see an estimated total.',
-     style:TextStyle(color:_muted)))
-    else _card(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     const Text('ESTIMATED TOTAL',style:TextStyle(color:_muted,fontSize:11,letterSpacing:1)),
-     const SizedBox(height:7),Text(money(r.total),style:const TextStyle(fontSize:32,fontWeight:FontWeight.w900,color:_mint)),
-     const Divider(color:_stroke,height:26),
-     _line('NCD discount','- '+money(r.ncdDeduction)),
-     _line('Premium after NCD',money(r.baseAfterNcd)),
-     _line('Add-on premiums',money(parsePositive(addon.text,zero:true)!)),
-     _line('Estimated service tax',money(r.sst)),
-     _line('Stamp duty',money(parsePositive(stamp.text,zero:true)!)),
-    ])),
-    const SizedBox(height:12),
-    const Text('NCD is applied to eligible basic premium, not to the complete OTR / insurance total. '
-     'Add-on tax treatment and actual premium depend on the insurer. Confirm official quotation before sharing.',
+    if(premium!=null)...[
+     _card(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      const Text('ESTIMATED YEARLY INSURANCE',
+       style:TextStyle(color:_muted,fontSize:11,letterSpacing:1)),
+      const SizedBox(height:9),
+      FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
+       child:Text(money(premium.total),
+        style:const TextStyle(color:_mint,fontSize:32,fontWeight:FontWeight.w900))),
+      const Divider(color:_stroke,height:25),
+      _line('Basic premium',money(parsePositive(base.text)!)),
+      _line('NCD discount','- '+money(premium.ncdDeduction)),
+      if(hasGlass)_line('Windscreen add-on',money(glassPremium!)),
+      _line('SST (8%)',money(premium.sst)),
+      _line('Stamp duty',money(10)),
+     ])),
+    ]else const Padding(
+      padding:EdgeInsets.symmetric(vertical:12),
+      child:Text('Enter basic premium and NCD to view your estimate.',
+       style:TextStyle(color:_muted,fontSize:12)),
+    ),
+    const SizedBox(height:13),
+    const Text(
+     'Indicative calculation only. SST and RM10 stamp duty are included automatically. '
+     'Insurer add-on rates and taxable amounts may differ; verify the final insurer quotation.',
      style:TextStyle(color:_muted,fontSize:11)),
-    const SizedBox(height:8),
-    TextButton.icon(onPressed:()=>_open('https://piam.org.my/news-media/stay-ahead/articles/page/how-to-transfer-your-ncd-when-buying-a-new-car-in-malaysia/'),
-     icon:const Icon(Icons.open_in_new),label:const Text('PIAM NCD reference')),
    ]));
  }
 }
