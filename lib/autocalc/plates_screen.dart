@@ -1,94 +1,152 @@
-
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'plates_data.dart';
 
-const _bg=Color(0xFF0D161C), _mint=Color(0xFF6DE5C1), _sub=Color(0xFFADC2C0), _card=Color(0xFF18282E);
+const b=Color(0xFF0D161C), surface=Color(0xFF18282E), mint=Color(0xFF6DE5C1),
+  muted=Color(0xFFADC2C0), stroke=Color(0xFF30494C);
+const key='autocalc_plates_last_good_v3';
+const jpj='https://www.jpj.gov.my/en/inquiry-of-latest-registration-number/';
+
 class LatestPlatesScreen extends StatefulWidget {
  const LatestPlatesScreen({super.key});
  @override State<LatestPlatesScreen> createState()=>_LatestPlatesScreenState();
 }
-class _LatestPlatesScreenState extends State<LatestPlatesScreen> {
- static const platehaus='https://www.platehaus.my/plate-index';
- static const jpj='https://www.jpj.gov.my/semakan-nombor-pendaftaran-terkini/';
- late final WebViewController browser;
- int source=0,loading=0;
- String? error;
- final urls=[platehaus,jpj];
- @override void initState() {
-  super.initState();
-  browser=WebViewController()
-   ..setJavaScriptMode(JavaScriptMode.unrestricted)
-   ..setBackgroundColor(const Color(0xFFFFFFFF))
-   ..setNavigationDelegate(NavigationDelegate(
-    onProgress:(p){if(mounted)setState(()=>loading=p);},
-    onPageStarted:(_){if(mounted)setState((){loading=0;error=null;});},
-    onPageFinished:(_){if(mounted)setState(()=>loading=100);},
-    onWebResourceError:(e){if(e.isForMainFrame??true){if(mounted)setState(()=>error=e.description);}},
-   ))
-   ..loadRequest(Uri.parse(platehaus));
+class _LatestPlatesScreenState extends State<LatestPlatesScreen>{
+ PlateSnapshot? snapshot;
+ bool loading=false, failed=false, expanded=false;
+ @override void initState(){super.initState();init();}
+ Future<void> init()async{
+  try {
+   final p=await SharedPreferences.getInstance();
+   final old=p.getString(key);
+   if(old!=null&&mounted){
+    final cached=PlateSnapshot.fromJson(jsonDecode(old),cached:true);
+    if(cached!=null)setState(()=>snapshot=cached);
+   }
+  }catch(_){}
+  await refresh();
  }
- void choose(int v){
-  setState((){source=v;error=null;loading=0;});
-  browser.loadRequest(Uri.parse(urls[v]));
+ Future<void> refresh()async{
+  if(loading)return;
+  setState((){loading=true;failed=false;});
+  try {
+   final r=await http.get(Uri.parse(platesFeedUrl),headers:const {'Accept':'application/json'})
+    .timeout(const Duration(seconds:15));
+   if(r.statusCode!=200||r.body.length>350000)throw const FormatException('Unusable response');
+   final fresh=PlateSnapshot.fromJson(jsonDecode(r.body));
+   if(fresh==null)throw const FormatException('Invalid response');
+   if(mounted)setState(()=>snapshot=fresh);
+   if(!fresh.stale){
+    final p=await SharedPreferences.getInstance();
+    await p.setString(key,r.body);
+   }
+  }catch(_){if(mounted)setState(()=>failed=true);}
+  finally{if(mounted)setState(()=>loading=false);}
  }
- Future<void> outside()async{
-  final uri=Uri.parse(urls[source]);
-  if(!await launchUrl(uri,mode:LaunchMode.externalApplication)&&mounted){
-   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Unable to open browser')));
+ Future<void> openJpj()async{
+  if(!await launchUrl(Uri.parse(jpj),mode:LaunchMode.externalApplication)&&mounted){
+   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Unable to open JPJ')));
   }
  }
- @override Widget build(BuildContext context)=>Column(children:[
-  Padding(padding:const EdgeInsets.fromLTRB(16,5,16,10),
-   child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    const Row(children:[
-     Icon(Icons.pin_outlined,color:_mint,size:25),SizedBox(width:8),
-     Text('Latest JPJ Plates',style:TextStyle(fontSize:21,fontWeight:FontWeight.w900))]),
-    const SizedBox(height:5),
-    const Text('View the original live source inside AutoCalc MY.',
-     style:TextStyle(color:_sub,fontSize:12)),
-    const SizedBox(height:12),
-    Container(padding:const EdgeInsets.all(4),decoration:BoxDecoration(color:_card,borderRadius:BorderRadius.circular(15)),
-     child:Row(children:[
-      _choice('Platehaus',0),
-      _choice('Official JPJ',1),
-     ])),
-    const SizedBox(height:9),
+ @override Widget build(BuildContext context){
+  final data=snapshot;
+  final status=data==null?'OFFLINE':(failed||data.stale?'SAVED':'LIVE');
+  return RefreshIndicator(onRefresh:refresh,color:mint,child:ListView(
+   physics:const AlwaysScrollableScrollPhysics(),
+   padding:const EdgeInsets.fromLTRB(16,8,16,28),children:[
     Row(children:[
-     const Expanded(child:Text('SOURCE WEBSITE · no data copied or modified',style:TextStyle(color:_sub,fontSize:9))),
-     IconButton(onPressed:()=>browser.reload(),tooltip:'Refresh source',icon:const Icon(Icons.refresh,color:_mint)),
-     IconButton(onPressed:outside,tooltip:'Open source in browser',icon:const Icon(Icons.open_in_new,color:_mint)),
+     const Icon(Icons.confirmation_number_outlined,color:mint,size:26),
+     const SizedBox(width:9),
+     const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Text('Latest Plate Numbers',style:TextStyle(fontWeight:FontWeight.w900,fontSize:21)),
+      Text('Malaysia running numbers',style:TextStyle(color:muted,fontSize:12))])),
+     IconButton(tooltip:'Refresh',onPressed:loading?null:refresh,
+      icon:loading?const SizedBox(width:21,height:21,child:CircularProgressIndicator(strokeWidth:2,color:mint))
+       :const Icon(Icons.refresh_rounded,color:mint)),
     ]),
-    if(loading<100)LinearProgressIndicator(value:loading<=0?null:loading/100,
-      minHeight:2,color:_mint,backgroundColor:_card),
-   ])),
-  Expanded(child:Container(
-   margin:const EdgeInsets.fromLTRB(10,0,10,10),
-   clipBehavior:Clip.hardEdge,
-   decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(17)),
-   child:error!=null?Center(child:Padding(padding:const EdgeInsets.all(25),child:Column(
-    mainAxisAlignment:MainAxisAlignment.center,children:[
-     const Icon(Icons.wifi_off_rounded,color:Colors.black87,size:40),
-     const SizedBox(height:10),
-     const Text('Source did not load',style:TextStyle(color:Colors.black87,fontWeight:FontWeight.w800)),
-     const SizedBox(height:5),Text(error!,textAlign:TextAlign.center,
-      style:const TextStyle(color:Colors.black54,fontSize:12)),
-     const SizedBox(height:12),
-     FilledButton(onPressed:(){setState(()=>error=null);browser.reload();},child:const Text('Try again')),
-     TextButton(onPressed:outside,child:const Text('Open in browser')),
-    ]))):WebViewWidget(controller:browser),
-  )),
-  const Padding(padding:EdgeInsets.fromLTRB(16,0,16,7),
-   child:Text('Platehaus is an independent website. JPJ may request manual verification. Numbers shown are controlled by their original sources.',
-    style:TextStyle(color:_sub,fontSize:10),textAlign:TextAlign.center)),
- ]);
- Widget _choice(String s,int value)=>Expanded(child:InkWell(
-  onTap:()=>choose(value),
-  borderRadius:BorderRadius.circular(12),
-  child:AnimatedContainer(duration:const Duration(milliseconds:150),
-   padding:const EdgeInsets.symmetric(vertical:12),
-   decoration:BoxDecoration(color:source==value?const Color(0xFF285A48):Colors.transparent,
-    borderRadius:BorderRadius.circular(12)),
-   child:Text(s,textAlign:TextAlign.center,
-    style:TextStyle(fontSize:12,fontWeight:FontWeight.w700,color:source==value?_mint:_sub)))));
+    const SizedBox(height:13),
+    Row(children:[
+     Container(padding:const EdgeInsets.symmetric(horizontal:10,vertical:6),
+      decoration:BoxDecoration(color:status=='LIVE'?const Color(0xFF1C5647):const Color(0xFF334349),
+       borderRadius:BorderRadius.circular(99)),
+      child:Text(status,style:TextStyle(fontSize:10,color:status=='LIVE'?mint:muted,fontWeight:FontWeight.w900))),
+     const SizedBox(width:10),
+     Expanded(child:Text(data==null?'No saved data yet':
+      (data.sourceUpdatedAt.isEmpty?'Update time unavailable':data.sourceUpdatedAt),
+       maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(color:muted,fontSize:11))),
+    ]),
+    const SizedBox(height:14),
+    if(data==null)_empty(),
+    if(data!=null)...[
+     if(failed||data.stale)const Padding(padding:EdgeInsets.only(bottom:12),
+      child:Text('Saved data. Verify the latest number with JPJ before using it.',
+       style:TextStyle(color:Color(0xFFE6D09E),fontSize:11))),
+     const Text('FEATURED',style:TextStyle(color:muted,fontSize:10,letterSpacing:1.4,fontWeight:FontWeight.bold)),
+     const SizedBox(height:9),
+     ...data.featured.map((p)=>Padding(padding:const EdgeInsets.only(bottom:9),child:_featured(p))),
+     if(data.featured.isEmpty)const Text('KL and Selangor not available',style:TextStyle(color:muted)),
+     const SizedBox(height:9),
+     InkWell(onTap:()=>setState(()=>expanded=!expanded),borderRadius:BorderRadius.circular(15),
+      child:Container(padding:const EdgeInsets.all(14),
+       decoration:BoxDecoration(color:surface,border:Border.all(color:stroke),borderRadius:BorderRadius.circular(15)),
+       child:Row(children:[
+        const Icon(Icons.map_outlined,color:mint),const SizedBox(width:10),
+        Expanded(child:Text('Other areas ('+data.others.length.toString()+')',
+         style:const TextStyle(fontSize:13,fontWeight:FontWeight.w800))),
+        Icon(expanded?Icons.expand_less:Icons.expand_more,color:muted),
+       ]))),
+     if(expanded)...[
+      const SizedBox(height:9),
+      ...data.others.map((p)=>Padding(padding:const EdgeInsets.only(bottom:7),child:_other(p))),
+     ],
+    ],
+    const SizedBox(height:14),
+    OutlinedButton.icon(onPressed:openJpj,icon:const Icon(Icons.verified_outlined),
+     label:const Text('Verify with JPJ'),
+     style:OutlinedButton.styleFrom(foregroundColor:mint,minimumSize:const Size.fromHeight(48),
+      side:const BorderSide(color:stroke))),
+    const SizedBox(height:6),
+    const Text('External tracking data, not an official JPJ confirmation.',
+     textAlign:TextAlign.center,style:TextStyle(color:muted,fontSize:10)),
+   ]));
+ }
+ Widget _shell(Widget child)=>Container(
+  padding:const EdgeInsets.all(15),
+  decoration:BoxDecoration(color:surface,border:Border.all(color:stroke),borderRadius:BorderRadius.circular(17)),
+  child:child);
+ Widget _empty()=>_shell(Column(children:[
+  const Icon(Icons.wifi_off_rounded,color:muted,size:34),
+  const SizedBox(height:9),
+  const Text('Latest numbers unavailable',style:TextStyle(fontWeight:FontWeight.bold)),
+  const SizedBox(height:5),
+  const Text('Refresh with an internet connection. No fake or outdated live values.',
+   style:TextStyle(color:muted,fontSize:12),textAlign:TextAlign.center),
+  TextButton.icon(onPressed:loading?null:refresh,icon:const Icon(Icons.refresh),
+   label:const Text('Try again')),
+ ]));
+ Widget _featured(PlateRecord p)=>_shell(Row(children:[
+  Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+   Text(p.state,style:const TextStyle(fontSize:15,fontWeight:FontWeight.w900)),
+   const SizedBox(height:4),
+   const Text('RUNNING NUMBER',style:TextStyle(fontSize:9,color:muted,letterSpacing:1)),
+  ])),
+  const SizedBox(width:8),
+  Container(constraints:const BoxConstraints(minWidth:118),
+   padding:const EdgeInsets.symmetric(horizontal:12,vertical:12),
+   decoration:BoxDecoration(color:Colors.black,border:Border.all(color:const Color(0xFF6A7B7E)),
+    borderRadius:BorderRadius.circular(10)),
+   child:Text(p.plate,textAlign:TextAlign.center,
+    style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w900,fontSize:17,letterSpacing:1))),
+ ]));
+ Widget _other(PlateRecord p)=>_shell(Row(children:[
+  Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+   Text(p.state,style:const TextStyle(fontWeight:FontWeight.w800,fontSize:13)),
+   Text(p.region,style:const TextStyle(color:muted,fontSize:10)),
+  ])),
+  const SizedBox(width:8),
+  Text(p.plate,style:const TextStyle(color:mint,fontSize:15,fontWeight:FontWeight.w900)),
+ ]));
 }
