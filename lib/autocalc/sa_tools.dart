@@ -9,20 +9,6 @@ double? parsePositive(String value,{bool zero=false}){
  if(n==null||!n.isFinite||n<0||(!zero&&n==0))return null;
  return n;
 }
-double roundCents(double v)=>(v*100).roundToDouble()/100;
-class InsuranceResult {
- const InsuranceResult(this.baseAfterNcd,this.ncdDeduction,this.sst,this.total);
- final double baseAfterNcd,ncdDeduction,sst,total;
-}
-InsuranceResult? estimateInsurance({required double? base,required double? extra,required double? sstPercent,
- required double? stamp,required double? ncd}) {
- if(base==null||extra==null||sstPercent==null||stamp==null||ncd==null||base<=0||
- extra<0||sstPercent<0||sstPercent>30||stamp<0||ncd<0||ncd>55)return null;
- final discount=roundCents(base*ncd/100);
- final after=roundCents(base-discount);
- final sst=roundCents((after+extra)*sstPercent/100);
- return InsuranceResult(after,discount,sst,roundCents(after+extra+sst+stamp));
-}
 double? peninsularRoadTax(int cc,{required bool nonSaloon}){
  if(cc<=0||cc>20000)return null;
  if(cc<=1000)return 20;
