@@ -142,9 +142,12 @@ class _InsuranceToolState extends State<InsuranceTool>{
     ),
     if(comprehensive)...[
      const SizedBox(height:14),
-     Container(
-      decoration:BoxDecoration(color:_panel,borderRadius:BorderRadius.circular(16),
-       border:Border.all(color:_stroke)),
+     Material(
+      color:_panel,
+      shape:RoundedRectangleBorder(
+       borderRadius:BorderRadius.circular(16),
+       side:const BorderSide(color:_stroke)),
+      clipBehavior:Clip.antiAlias,
       child:SwitchListTile.adaptive(
        contentPadding:const EdgeInsets.symmetric(horizontal:14),
        title:const Text('Windscreen Cover',
