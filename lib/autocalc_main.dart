@@ -213,7 +213,7 @@ class _AutoHomeState extends State<AutoHome>{
     IconButton(tooltip:'Delete',onPressed:()async{setState(()=>history.removeAt(i));
      final p=await SharedPreferences.getInstance();await p.setStringList('ac_quotes',history);
     },icon:const Icon(Icons.delete_outline,color:muted)),
-   ]))));
+   ])));
   }),
  ]);
  void preview(LoanPlan x)=>showModalBottomSheet<void>(context:context,isScrollControlled:true,backgroundColor:bg,
