@@ -1,9 +1,10 @@
-name: AutoCalc MY v0.2 Beta APK
+name: AutoCalc MY v0.3 Clean UI
 on:
   push:
     branches:
       - autocalc-my-v0-1
       - autocalc-my-v0-2
+      - autocalc-my-v0-3
   workflow_dispatch:
 
 jobs:
@@ -28,18 +29,18 @@ jobs:
           p.write_text(s)
           gradle=Path('android/app/build.gradle.kts')
           if gradle.exists():
-            t=gradle.read_text().replace('applicationId = "my.autocalc.kiroda"','applicationId = "my.autocalc.sav2"')
-            t=t.replace('versionName = flutter.versionName','versionName = "0.2.0"')
+            t=gradle.read_text().replace('applicationId = "my.autocalc.kiroda"','applicationId = "my.autocalc.sav3"')
+            t=t.replace('versionName = flutter.versionName','versionName = "0.3.0"')
             gradle.write_text(t)
           PY
       - name: Install offline and share-image dependencies
         run: |
-          flutter pub add path_provider url_launcher webview_flutter
+          flutter pub add path_provider url_launcher http
           flutter pub get
       - name: Analyze AutoCalc sources
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/autocalc_main.dart lib/autocalc/finance.dart lib/autocalc/plates_screen.dart lib/autocalc/sa_tools.dart
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/autocalc_main.dart lib/autocalc/finance.dart lib/autocalc/plates_screen.dart lib/autocalc/plates_data.dart lib/autocalc/sa_tools.dart
       - name: Test payment math
-        run: flutter test test/autocalc_finance_test.dart test/autocalc_tools_test.dart
+        run: flutter test test/autocalc_finance_test.dart test/autocalc_tools_test.dart test/autocalc_plates_test.dart
       - name: Build signed debug test APK
         run: flutter build apk --debug -t lib/autocalc_main.dart
       - name: Build smaller per-ABI test APKs
@@ -47,7 +48,7 @@ jobs:
       - name: Upload installable APKs
         uses: actions/upload-artifact@v4
         with:
-          name: AutoCalc-MY-SA-v0.2-APKs
+          name: AutoCalc-MY-SA-v0.3-APKs
           if-no-files-found: error
           path: |
             build/app/outputs/flutter-apk/app-debug.apk
