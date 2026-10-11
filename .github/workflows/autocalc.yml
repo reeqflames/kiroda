@@ -1,4 +1,4 @@
-name: AutoCalc MY v0.6 Insurance Sum Insured
+name: AutoCalc MY v0.7 Insurance Dropdown
 on:
   push:
     branches:
@@ -8,6 +8,7 @@ on:
       - autocalc-my-v0-4
       - autocalc-my-v0-5
       - autocalc-my-v0-6
+      - autocalc-my-v0-7
   workflow_dispatch:
 
 jobs:
@@ -32,8 +33,8 @@ jobs:
           p.write_text(s)
           gradle=Path('android/app/build.gradle.kts')
           if gradle.exists():
-            t=gradle.read_text().replace('applicationId = "my.autocalc.kiroda"','applicationId = "my.autocalc.sav6"')
-            t=t.replace('versionName = flutter.versionName','versionName = "0.6.0"')
+            t=gradle.read_text().replace('applicationId = "my.autocalc.kiroda"','applicationId = "my.autocalc.sav7"')
+            t=t.replace('versionName = flutter.versionName','versionName = "0.7.0"')
             gradle.write_text(t)
           PY
       - name: Install offline and share-image dependencies
@@ -43,7 +44,7 @@ jobs:
       - name: Analyze AutoCalc sources
         run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/autocalc_main.dart lib/autocalc/finance.dart lib/autocalc/plates_screen.dart lib/autocalc/plates_data.dart lib/autocalc/sa_tools.dart lib/autocalc/number_format.dart lib/autocalc/insurance_tariff.dart
       - name: Test payment math
-        run: flutter test test/autocalc_finance_test.dart test/autocalc_tools_test.dart test/autocalc_plates_test.dart test/autocalc_number_format_test.dart test/autocalc_insurance_tariff_test.dart
+        run: flutter test test/autocalc_finance_test.dart test/autocalc_tools_test.dart test/autocalc_plates_test.dart test/autocalc_number_format_test.dart test/autocalc_insurance_tariff_test.dart test/autocalc_insurance_screen_test.dart
       - name: Build signed debug test APK
         run: flutter build apk --debug -t lib/autocalc_main.dart
       - name: Build smaller per-ABI test APKs
@@ -51,7 +52,7 @@ jobs:
       - name: Upload installable APKs
         uses: actions/upload-artifact@v4
         with:
-          name: AutoCalc-MY-SA-v0.6-APKs
+          name: AutoCalc-MY-SA-v0.7-APKs
           if-no-files-found: error
           path: |
             build/app/outputs/flutter-apk/app-debug.apk
