@@ -10,6 +10,22 @@ void main(){
   expect(r.sst,124);
   expect(r.total,1684);
  });
+ test('windscreen add-on uses 15 percent of coverage amount',(){
+  final cover=3000.0;
+  final additional=estimateWindscreenPremium(cover);
+  expect(additional,450);
+  final r=estimateInsurance(base:3000,extra:additional,
+      sstPercent:8,stamp:10,ncd:55);
+  expect(r,isNotNull);
+  expect(r!.ncdDeduction,1650);
+  expect(r.sst,144);
+  expect(r.total,1954);
+ });
+ test('windscreen not selected: optional zero-cost extra is accepted',(){
+  final r=estimateInsurance(base:3000,extra:0,
+      sstPercent:8,stamp:10,ncd:55);
+  expect(r!.total,1468);
+ });
  test('all input is required for insurance quote',(){
   expect(estimateInsurance(base:null,extra:0,sstPercent:8,stamp:10,ncd:0),null);
  });
