@@ -153,8 +153,8 @@ class _AutoHomeState extends State<AutoHome>{
     const Text('PAYMENT COMPOSITION',style:TextStyle(fontWeight:FontWeight.w800,fontSize:12)),
     const SizedBox(height:11),
     ClipRRect(borderRadius:BorderRadius.circular(12),child:Row(children:[
-     Expanded(flex:(ratio*1000).round().clamp(1,999),child:Container(height:12,color:accent)),
-     Expanded(flex:((1-ratio)*1000).round().clamp(1,999),child:Container(height:12,color:const Color(0xFF426973))),
+     Expanded(flex:(ratio*1000).round().clamp(1,999).toInt(),child:Container(height:12,color:accent)),
+     Expanded(flex:((1-ratio)*1000).round().clamp(1,999).toInt(),child:Container(height:12,color:const Color(0xFF426973))),
     ])),
     const SizedBox(height:8),
     Text('Principal '+(ratio*100).toStringAsFixed(1)+'% · Interest '+((1-ratio)*100).toStringAsFixed(1)+'%',style:const TextStyle(color:muted,fontSize:11)),
