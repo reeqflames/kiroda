@@ -35,8 +35,8 @@ class InsuranceTool extends StatefulWidget {
 
 class _InsuranceToolState extends State<InsuranceTool>{
  final insured=TextEditingController();
- final cc=TextEditingController();
  final windscreenAmount=TextEditingController();
+ int? selectedEngineBand;
  InsuranceCover cover=InsuranceCover.comprehensive;
  InsuranceRegion region=InsuranceRegion.peninsular;
  double? ncd;
@@ -44,11 +44,11 @@ class _InsuranceToolState extends State<InsuranceTool>{
 
  @override void initState(){
   super.initState();
-  for(final input in [insured,cc,windscreenAmount]){input.addListener(refresh);}
+  for(final input in [insured,windscreenAmount]){input.addListener(refresh);}
  }
  void refresh(){if(mounted)setState((){});}
  @override void dispose(){
-  insured.dispose();cc.dispose();windscreenAmount.dispose();super.dispose();
+  insured.dispose();windscreenAmount.dispose();super.dispose();
  }
 
  @override Widget build(BuildContext context){
@@ -56,8 +56,8 @@ class _InsuranceToolState extends State<InsuranceTool>{
   final glassSelected=comprehensive&&windscreen;
   final glassValue=glassSelected?parsePositive(windscreenAmount.text):0.0;
   final estimate=estimateMotorInsurance(
-   sumInsured:comprehensive?parsePositive(insured.text):null,
-   engineCc:int.tryParse(cc.text.replaceAll(',','')),
+   sumInsured:parsePositive(insured.text),
+   engineCc:selectedEngineBand,
    ncdPercent:ncd,cover:cover,region:region,
    windscreenSum:glassValue??double.nan,
   );
@@ -83,24 +83,41 @@ class _InsuranceToolState extends State<InsuranceTool>{
      style:ButtonStyle(visualDensity:VisualDensity.compact),
     ),
     const SizedBox(height:15),
-    if(comprehensive)...[
-     TextField(
-      controller:insured,
-      keyboardType:const TextInputType.numberWithOptions(decimal:true),
-      inputFormatters:const [GroupedNumberInputFormatter()],
-      decoration:const InputDecoration(
-       labelText:'Market Value / Sum Insured (RM)',
-       hintText:'e.g. 50,000',
-      )),
-     const SizedBox(height:11),
-    ],
     TextField(
-     controller:cc,
-     keyboardType:TextInputType.number,
-     inputFormatters:const [GroupedNumberInputFormatter(decimalPlaces:0)],
+     controller:insured,
+     keyboardType:const TextInputType.numberWithOptions(decimal:true),
+     inputFormatters:const [GroupedNumberInputFormatter()],
      decoration:const InputDecoration(
-      labelText:'Engine Capacity (cc)',hintText:'e.g. 1,498',
-     )),
+      labelText:'Market Value / Sum Insured (RM)',
+      hintText:'e.g. 50,000',
+     ),
+    ),
+    if(!comprehensive)...[
+     const SizedBox(height:5),
+     const Text(
+      'For reference only. Third Party covers third-party liability, '
+      'not damage to your own car. Market value does not affect this estimate.',
+      style:TextStyle(color:_muted,fontSize:11),
+     ),
+    ],
+    const SizedBox(height:11),
+    DropdownButtonFormField<int>(
+     initialValue:selectedEngineBand,
+     isExpanded:true,
+     hint:const Text('Select engine capacity'),
+     decoration:const InputDecoration(labelText:'Engine Capacity'),
+     items:const [
+      DropdownMenuItem(value:1400,child:Text('0 – 1,400 cc')),
+      DropdownMenuItem(value:1650,child:Text('1,401 – 1,650 cc')),
+      DropdownMenuItem(value:2200,child:Text('1,651 – 2,200 cc')),
+      DropdownMenuItem(value:3050,child:Text('2,201 – 3,050 cc')),
+      DropdownMenuItem(value:4100,child:Text('3,051 – 4,100 cc')),
+      DropdownMenuItem(value:4250,child:Text('4,101 – 4,250 cc')),
+      DropdownMenuItem(value:4400,child:Text('4,251 – 4,400 cc')),
+      DropdownMenuItem(value:4401,child:Text('Over 4,400 cc')),
+     ],
+     onChanged:(v)=>setState(()=>selectedEngineBand=v),
+    ),
     const SizedBox(height:11),
     DropdownButtonFormField<InsuranceRegion>(
      initialValue:region,isExpanded:true,
