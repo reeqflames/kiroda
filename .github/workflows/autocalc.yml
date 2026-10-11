@@ -1,4 +1,4 @@
-name: AutoCalc MY v0.4 Number Formatting
+name: AutoCalc MY v0.5 Insurance UX
 on:
   push:
     branches:
@@ -6,6 +6,7 @@ on:
       - autocalc-my-v0-2
       - autocalc-my-v0-3
       - autocalc-my-v0-4
+      - autocalc-my-v0-5
   workflow_dispatch:
 
 jobs:
@@ -30,8 +31,8 @@ jobs:
           p.write_text(s)
           gradle=Path('android/app/build.gradle.kts')
           if gradle.exists():
-            t=gradle.read_text().replace('applicationId = "my.autocalc.kiroda"','applicationId = "my.autocalc.sav4"')
-            t=t.replace('versionName = flutter.versionName','versionName = "0.4.0"')
+            t=gradle.read_text().replace('applicationId = "my.autocalc.kiroda"','applicationId = "my.autocalc.sav5"')
+            t=t.replace('versionName = flutter.versionName','versionName = "0.5.0"')
             gradle.write_text(t)
           PY
       - name: Install offline and share-image dependencies
@@ -49,7 +50,7 @@ jobs:
       - name: Upload installable APKs
         uses: actions/upload-artifact@v4
         with:
-          name: AutoCalc-MY-SA-v0.4-APKs
+          name: AutoCalc-MY-SA-v0.5-APKs
           if-no-files-found: error
           path: |
             build/app/outputs/flutter-apk/app-debug.apk
