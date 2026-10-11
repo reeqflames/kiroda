@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'number_format.dart';
+import 'insurance_tariff.dart';
 const _bg=Color(0xFF0D161C),_panel=Color(0xFF18282E),_mint=Color(0xFF6DE5C1),_muted=Color(0xFFADC2C0),_stroke=Color(0xFF30494C);
 double? parsePositive(String value,{bool zero=false}){
  final n=double.tryParse(value.replaceAll(',','').trim());
@@ -41,133 +42,155 @@ Widget _line(String label,String value,{bool highlight=false})=>Padding(padding:
  child:Row(children:[Expanded(child:Text(label,style:const TextStyle(fontSize:12,color:_muted))),
   Text(value,style:TextStyle(fontSize:14,fontWeight:FontWeight.bold,color:highlight?_mint:Colors.white))]));
 Future<void> _open(String url) async { await launchUrl(Uri.parse(url),mode:LaunchMode.externalApplication); }
-/// 15% is a commonly advertised windscreen add-on rate, not a universal quote.
-double estimateWindscreenPremium(double sumInsured) =>
-    roundCents(sumInsured * 0.15);
-
-enum CoverType { comprehensive, thirdParty }
-
 class InsuranceTool extends StatefulWidget {
  const InsuranceTool({super.key});
  @override State<InsuranceTool> createState()=>_InsuranceToolState();
 }
+
 class _InsuranceToolState extends State<InsuranceTool>{
- final base=TextEditingController();
- final glassCover=TextEditingController();
+ final insured=TextEditingController();
+ final cc=TextEditingController();
+ final windscreenAmount=TextEditingController();
+ InsuranceCover cover=InsuranceCover.comprehensive;
+ InsuranceRegion region=InsuranceRegion.peninsular;
  double? ncd;
- CoverType cover=CoverType.comprehensive;
  bool windscreen=false;
+
  @override void initState(){
   super.initState();
-  base.addListener(update);
-  glassCover.addListener(update);
+  for(final input in [insured,cc,windscreenAmount]){input.addListener(refresh);}
  }
- void update(){if(mounted)setState((){});}
- @override void dispose(){base.dispose();glassCover.dispose();super.dispose();}
+ void refresh(){if(mounted)setState((){});}
+ @override void dispose(){
+  insured.dispose();cc.dispose();windscreenAmount.dispose();super.dispose();
+ }
+
  @override Widget build(BuildContext context){
-  final hasGlass=cover==CoverType.comprehensive&&windscreen;
-  final insuredGlass=hasGlass?parsePositive(glassCover.text):0.0;
-  final glassPremium=insuredGlass==null?null:estimateWindscreenPremium(insuredGlass);
-  final premium=estimateInsurance(
-   base:parsePositive(base.text),
-   extra:glassPremium,
-   sstPercent:8,
-   stamp:10,
-   ncd:ncd,
+  final comprehensive=cover==InsuranceCover.comprehensive;
+  final glassSelected=comprehensive&&windscreen;
+  final glassValue=glassSelected?parsePositive(windscreenAmount.text):0.0;
+  final estimate=estimateMotorInsurance(
+   sumInsured:comprehensive?parsePositive(insured.text):null,
+   engineCc:int.tryParse(cc.text.replaceAll(',','')),
+   ncdPercent:ncd,cover:cover,region:region,
+   windscreenSum:glassValue??double.nan,
   );
   return Scaffold(backgroundColor:_bg,appBar:AppBar(title:const Text('Insurance Estimate')),
-   body:ListView(padding:const EdgeInsets.fromLTRB(17,12,17,28),children:[
-    const Text('Private Car Insurance',
+   body:ListView(padding:const EdgeInsets.fromLTRB(17,12,17,27),children:[
+    const Text('Car Insurance Calculator',
      style:TextStyle(fontSize:22,fontWeight:FontWeight.w800)),
     const SizedBox(height:5),
-    const Text('Use the basic premium provided by your insurer.',
+    const Text('Estimate automatically from your vehicle details.',
      style:TextStyle(color:_muted,fontSize:12)),
     const SizedBox(height:16),
     const Text('Type of Coverage',style:TextStyle(fontWeight:FontWeight.w700,fontSize:13)),
-    const SizedBox(height:9),
-    SegmentedButton<CoverType>(
-      segments:const [
-       ButtonSegment(value:CoverType.comprehensive,label:Text('Comprehensive')),
-       ButtonSegment(value:CoverType.thirdParty,label:Text('Third Party')),
-      ],
-      selected:{cover},
-      onSelectionChanged:(v)=>setState(()=>cover=v.first),
-      style:ButtonStyle(visualDensity:VisualDensity.compact),
+    const SizedBox(height:8),
+    SegmentedButton<InsuranceCover>(
+     selected:{cover},
+     segments:const [
+      ButtonSegment(value:InsuranceCover.comprehensive,
+       label:Text('Comprehensive',style:TextStyle(fontSize:12))),
+      ButtonSegment(value:InsuranceCover.thirdParty,
+       label:Text('Third Party',style:TextStyle(fontSize:12))),
+     ],
+     onSelectionChanged:(selection)=>setState(()=>cover=selection.first),
+     style:ButtonStyle(visualDensity:VisualDensity.compact),
     ),
     const SizedBox(height:15),
+    if(comprehensive)...[
+     TextField(
+      controller:insured,
+      keyboardType:const TextInputType.numberWithOptions(decimal:true),
+      inputFormatters:const [GroupedNumberInputFormatter()],
+      decoration:const InputDecoration(
+       labelText:'Market Value / Sum Insured (RM)',
+       hintText:'e.g. 50,000',
+      )),
+     const SizedBox(height:11),
+    ],
     TextField(
-     controller:base,keyboardType:const TextInputType.numberWithOptions(decimal:true),
-     inputFormatters:const [GroupedNumberInputFormatter()],
+     controller:cc,
+     keyboardType:TextInputType.number,
+     inputFormatters:const [GroupedNumberInputFormatter(decimalPlaces:0)],
      decoration:const InputDecoration(
-      labelText:'Basic Premium Before NCD (RM)',
-      hintText:'e.g. 2,500',
-     ),
+      labelText:'Engine Capacity (cc)',hintText:'e.g. 1,498',
+     )),
+    const SizedBox(height:11),
+    DropdownButtonFormField<InsuranceRegion>(
+     initialValue:region,isExpanded:true,
+     decoration:const InputDecoration(labelText:'Location'),
+     items:const [
+      DropdownMenuItem(value:InsuranceRegion.peninsular,
+       child:Text('Peninsular Malaysia')),
+      DropdownMenuItem(value:InsuranceRegion.eastMalaysia,
+       child:Text('Sabah / Sarawak')),
+     ],
+     onChanged:(next){if(next!=null)setState(()=>region=next);},
     ),
     const SizedBox(height:11),
     DropdownButtonFormField<double>(
-      key:ValueKey(ncd),
-      initialValue:ncd,
-      hint:const Text('Select NCD'),
-      decoration:const InputDecoration(labelText:'No Claim Discount (NCD)'),
-      items:const [0.0,25.0,30.0,38.33,45.0,55.0].map((v)=>
-        DropdownMenuItem<double>(value:v,
-          child:Text(v==38.33?'38.33%':v.toStringAsFixed(0)+'%'))).toList(),
-      onChanged:(value)=>setState(()=>ncd=value),
+     initialValue:ncd,isExpanded:true,
+     hint:const Text('Choose NCD'),
+     decoration:const InputDecoration(labelText:'No Claim Discount (NCD)'),
+     items:const [0.0,25.0,30.0,38.33,45.0,55.0].map((v)=>
+      DropdownMenuItem<double>(value:v,
+       child:Text(v==38.33?'38.33%':v.toStringAsFixed(0)+'%'))).toList(),
+     onChanged:(next)=>setState(()=>ncd=next),
     ),
-    if(cover==CoverType.comprehensive)...[
-      const SizedBox(height:14),
-      Container(
-       decoration:BoxDecoration(color:_panel,borderRadius:BorderRadius.circular(16),
-        border:Border.all(color:_stroke)),
-       child:SwitchListTile.adaptive(
-        contentPadding:const EdgeInsets.symmetric(horizontal:14),
-        title:const Text('Windscreen Cover',style:TextStyle(fontSize:14,fontWeight:FontWeight.w700)),
-        subtitle:const Text('Optional',style:TextStyle(fontSize:11,color:_muted)),
-        activeColor:_mint,value:windscreen,
-        onChanged:(v)=>setState(()=>windscreen=v),
+    if(comprehensive)...[
+     const SizedBox(height:14),
+     Container(
+      decoration:BoxDecoration(color:_panel,borderRadius:BorderRadius.circular(16),
+       border:Border.all(color:_stroke)),
+      child:SwitchListTile.adaptive(
+       contentPadding:const EdgeInsets.symmetric(horizontal:14),
+       title:const Text('Windscreen Cover',
+        style:TextStyle(fontSize:14,fontWeight:FontWeight.w700)),
+       subtitle:const Text('Optional',style:TextStyle(fontSize:11,color:_muted)),
+       activeColor:_mint,value:windscreen,
+       onChanged:(checked)=>setState(()=>windscreen=checked),
+      ),
+     ),
+     if(windscreen)...[
+      const SizedBox(height:10),
+      TextField(
+       controller:windscreenAmount,
+       keyboardType:const TextInputType.numberWithOptions(decimal:true),
+       inputFormatters:const [GroupedNumberInputFormatter()],
+       decoration:const InputDecoration(
+        labelText:'Windscreen Sum Insured (RM)',
+        hintText:'e.g. 3,000',
        ),
       ),
-      if(windscreen)...[
-       const SizedBox(height:10),
-       TextField(
-        controller:glassCover,
-        inputFormatters:const [GroupedNumberInputFormatter()],
-        keyboardType:const TextInputType.numberWithOptions(decimal:true),
-        decoration:const InputDecoration(
-         labelText:'Windscreen Sum Insured (RM)',hintText:'e.g. 3,000'),
-       ),
-       const SizedBox(height:6),
-       Text(glassPremium==null
-        ? 'Estimated windscreen premium: 15% of sum insured'
-        : 'Estimated windscreen premium: '+money(glassPremium)+' (15%)',
-        style:const TextStyle(color:_muted,fontSize:11)),
-      ]
+      const SizedBox(height:6),
+      const Text('Indicative premium: 15% of windscreen cover.',
+       style:TextStyle(color:_muted,fontSize:11)),
+     ]
     ],
     const SizedBox(height:17),
-    if(premium!=null)...[
-     _card(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      const Text('ESTIMATED YEARLY INSURANCE',
-       style:TextStyle(color:_muted,fontSize:11,letterSpacing:1)),
-      const SizedBox(height:9),
-      FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
-       child:Text(money(premium.total),
-        style:const TextStyle(color:_mint,fontSize:32,fontWeight:FontWeight.w900))),
-      const Divider(color:_stroke,height:25),
-      _line('Basic premium',money(parsePositive(base.text)!)),
-      _line('NCD discount','- '+money(premium.ncdDeduction)),
-      if(hasGlass)_line('Windscreen add-on',money(glassPremium!)),
-      _line('SST (8%)',money(premium.sst)),
-      _line('Stamp duty',money(10)),
-     ])),
-    ]else const Padding(
-      padding:EdgeInsets.symmetric(vertical:12),
-      child:Text('Enter basic premium and NCD to view your estimate.',
-       style:TextStyle(color:_muted,fontSize:12)),
-    ),
-    const SizedBox(height:13),
+    if(estimate==null)
+     const Padding(padding:EdgeInsets.symmetric(vertical:10),
+      child:Text('Enter the required vehicle details to see the estimated premium.',
+       style:TextStyle(color:_muted,fontSize:12)))
+    else _card(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+     const Text('ESTIMATED YEARLY INSURANCE',
+      style:TextStyle(color:_muted,fontSize:11,letterSpacing:1)),
+     const SizedBox(height:8),
+     FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
+      child:Text(money(estimate.total),
+       style:const TextStyle(fontSize:32,fontWeight:FontWeight.w900,color:_mint))),
+     const Divider(color:_stroke,height:26),
+     _line('Estimated basic premium',money(estimate.basicPremium)),
+     _line('NCD discount','− '+money(estimate.ncdSaving)),
+     if(glassSelected)_line('Windscreen premium',money(estimate.windscreenPremium)),
+     _line('SST (8%)',money(estimate.serviceTax)),
+     _line('Stamp duty',money(estimate.stampDuty)),
+    ])),
+    const SizedBox(height:12),
     const Text(
-     'Indicative calculation only. SST and RM10 stamp duty are included automatically. '
-     'Insurer add-on rates and taxable amounts may differ; verify the final insurer quotation.',
+     'Baseline based on the former Malaysian Motor Tariff, not a live insurer quote. '
+     'Current premiums vary by insurer, driver, car model and risk profile. '
+     'Confirm the final amount with your insurer.',
      style:TextStyle(color:_muted,fontSize:11)),
    ]));
  }
