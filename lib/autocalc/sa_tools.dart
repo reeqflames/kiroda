@@ -39,7 +39,7 @@ Widget _card(Widget child)=>Container(padding:const EdgeInsets.all(17),decoratio
 Widget _line(String label,String value,{bool highlight=false})=>Padding(padding:const EdgeInsets.symmetric(vertical:7),
  child:Row(children:[Expanded(child:Text(label,style:const TextStyle(fontSize:12,color:_muted))),
   Text(value,style:TextStyle(fontSize:14,fontWeight:FontWeight.bold,color:highlight?_mint:Colors.white))]));
-Future<void> _open(String url)=>launchUrl(Uri.parse(url),mode:LaunchMode.externalApplication);
+Future<void> _open(String url) async { await launchUrl(Uri.parse(url),mode:LaunchMode.externalApplication); }
 class InsuranceTool extends StatefulWidget {
  const InsuranceTool({super.key});
  @override State<InsuranceTool> createState()=>_InsuranceToolState();
