@@ -39,7 +39,7 @@ class LoanPlan {
 
   /// Future simulated interest saved by early payoff, not contractual rebate.
   double futureInterest(int completedPayments) => toCents(rows
-      .skip(completedPayments.clamp(0, rows.length))
+      .skip(math.min(math.max(completedPayments, 0), rows.length))
       .fold<double>(0, (sum, row) => sum + row.interest));
 }
 
