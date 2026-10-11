@@ -99,10 +99,7 @@ class _AutoHomeState extends State<AutoHome>{
     onChanged:(v)=>setState((){years=v;paid=0;}))),
   ]),
   const SizedBox(height:18),
-  if(x==null)panel(const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Icon(Icons.edit_note_rounded,color:accent,size:30),SizedBox(height:8),
-    Text('Ready when you are',style:TextStyle(fontWeight:FontWeight.bold,fontSize:17)),
-    SizedBox(height:5),Text('Enter Loan Amount, Interest and Years. Your monthly estimate will appear automatically.',style:TextStyle(color:muted,fontSize:12))]))else ...[
+  if(x==null)const Padding(padding:EdgeInsets.symmetric(vertical:8),child:Text('Enter Loan Amount, Interest and Years to calculate.',style:TextStyle(color:muted,fontSize:12)))else ...[
    Container(padding:const EdgeInsets.all(20),decoration:BoxDecoration(
     gradient:const LinearGradient(colors:[Color(0xFF1D4C40),Color(0xFF19353A),Color(0xFF15272F)]),
     border:Border.all(color:const Color(0xFF478B78)),borderRadius:BorderRadius.circular(23)),
@@ -125,12 +122,7 @@ class _AutoHomeState extends State<AutoHome>{
     line('Total interest',myr(x.totalInterest,cents:true)),const Divider(color:border),
     line('Total repayment',myr(x.totalRepayment,cents:true)),
    ])),
-   const SizedBox(height:11),
-   panel(ExpansionTile(tilePadding:EdgeInsets.zero,
-    title:const Text('Calculation Details · SA Only',style:TextStyle(fontSize:14)),
-    children:[line('Exact monthly calculation',myr(x.exactMonthly,cents:true)),
-     line('Number of simulated payments',x.rows.length.toString()),
-     const Text('Monthly installment estimate is rounded up to RM10. Bank-issued payment terms may differ.',style:TextStyle(color:muted,fontSize:11))])),
+
   ],
   const SizedBox(height:17),
   const Text('Indicative only · Bank approval, interest and repayment schedule may differ.',style:TextStyle(color:muted,fontSize:11)),
