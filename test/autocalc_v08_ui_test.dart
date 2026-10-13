@@ -43,6 +43,39 @@ void main(){
   expect(tester.widget<TextField>(find.byType(TextField).first).controller!.text,'50,000');
   expect(tester.takeException(),isNull);
  });
+ testWidgets('Special Perils toggle and rate are aligned and optional',(tester)async{
+  tester.view.physicalSize=const Size(1170,2532);
+  tester.view.devicePixelRatio=3;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  await tester.pumpWidget(const MaterialApp(home:InsuranceTool()));
+  await tester.pumpAndSettle();
+  final toggleField=find.byKey(const ValueKey('special-perils-toggle-field'));
+  final rateField=find.byKey(const ValueKey('special-perils-rate-field'));
+  final left=tester.getRect(toggleField);
+  final right=tester.getRect(rateField);
+  expect((left.top-right.top).abs(),lessThan(.5));
+  expect((left.width-right.width).abs(),lessThan(.5));
+  expect((left.height-right.height).abs(),lessThan(.5));
+
+  final toggle=find.byKey(const ValueKey('special-perils-toggle'));
+  await tester.ensureVisible(toggle);
+  await tester.tap(toggle);
+  await tester.pumpAndSettle();
+  expect(tester.widget<SwitchListTile>(toggle).value,isTrue);
+  expect(tester.takeException(),isNull);
+
+  await tester.tap(find.text('Third Party'));
+  await tester.pumpAndSettle();
+  expect(tester.widget<SwitchListTile>(toggle).value,isFalse);
+  expect(tester.widget<SwitchListTile>(toggle).onChanged,isNull);
+
+  await tester.tap(find.text('Comprehensive'));
+  await tester.pumpAndSettle();
+  expect(tester.widget<SwitchListTile>(toggle).value,isTrue);
+  expect(tester.takeException(),isNull);
+ });
+
  testWidgets('OTR opens blank and offers full/90/custom options',(tester)async{
   tester.view.physicalSize=const Size(1170,2532);
   tester.view.devicePixelRatio=3;
