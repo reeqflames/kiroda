@@ -4,24 +4,16 @@ import 'package:url_launcher/url_launcher.dart';
 import 'number_format.dart';
 import 'insurance_tariff.dart';
 import 'otr_screen.dart';
+import 'road_tax.dart';
 const _bg=Color(0xFF0D161C),_panel=Color(0xFF18282E),_mint=Color(0xFF6DE5C1),_muted=Color(0xFFADC2C0),_stroke=Color(0xFF30494C);
 double? parsePositive(String value,{bool zero=false}){
  final n=double.tryParse(value.replaceAll(',','').trim());
  if(n==null||!n.isFinite||n<0||(!zero&&n==0))return null;
  return n;
 }
-double? peninsularRoadTax(int cc,{required bool nonSaloon}){
- if(cc<=0||cc>20000)return null;
- if(cc<=1000)return 20;
- if(cc<=1200)return nonSaloon?85:55;
- if(cc<=1400)return nonSaloon?100:70;
- if(cc<=1600)return nonSaloon?120:90;
- if(cc<=1800)return (nonSaloon?300:200)+(cc-1600)*(nonSaloon?0.30:0.40);
- if(cc<=2000)return (nonSaloon?360:280)+(cc-1800)*(nonSaloon?0.40:0.50);
- if(cc<=2500)return (nonSaloon?440:380)+(cc-2000)*(nonSaloon?0.80:1.00);
- if(cc<=3000)return (nonSaloon?840:880)+(cc-2500)*(nonSaloon?1.60:2.50);
- return (nonSaloon?1640:2130)+(cc-3000)*(nonSaloon?1.60:4.50);
-}
+double? peninsularRoadTax(int cc,{required bool nonSaloon}) =>
+    annualPrivateRoadTax(electric:false,eastMalaysia:false,
+     nonSaloon:nonSaloon,engineCc:cc);
 String money(double n)=>currencyAmount(n);
 Widget _card(Widget child)=>Container(padding:const EdgeInsets.all(17),decoration:BoxDecoration(color:_panel,
  border:Border.all(color:_stroke),borderRadius:BorderRadius.circular(18)),child:child);
@@ -209,47 +201,111 @@ class _InsuranceToolState extends State<InsuranceTool>{
    ]));
  }
 }
-class RoadTaxTool extends StatefulWidget{
+class RoadTaxTool extends StatefulWidget {
  const RoadTaxTool({super.key});
  @override State<RoadTaxTool> createState()=>_RoadTaxToolState();
 }
 class _RoadTaxToolState extends State<RoadTaxTool>{
- final cc=TextEditingController(); bool nonSaloon=false;
- @override void initState(){super.initState();cc.addListener(refresh);}
+ final engine=TextEditingController(),kw=TextEditingController();
+ bool electric=false,nonSaloon=false,east=false;
+ @override void initState(){
+  super.initState();engine.addListener(refresh);kw.addListener(refresh);
+ }
  void refresh(){if(mounted)setState((){});}
- @override void dispose(){cc.dispose();super.dispose();}
+ @override void dispose(){engine.dispose();kw.dispose();super.dispose();}
+ Widget field(String title,Widget child)=>Column(
+  crossAxisAlignment:CrossAxisAlignment.start,children:[
+   Text(title,style:const TextStyle(color:_muted,
+    fontSize:11,fontWeight:FontWeight.w700)),
+   const SizedBox(height:5),
+   SizedBox(height:49,width:double.infinity,child:child),
+  ]);
  @override Widget build(BuildContext context){
-  final v=int.tryParse(cc.text.replaceAll(',',''));
-  final estimate=v==null?null:peninsularRoadTax(v,nonSaloon:nonSaloon);
-  return Scaffold(backgroundColor:_bg,appBar:AppBar(title:const Text('Road Tax Calculator')),
-   body:ListView(padding:const EdgeInsets.all(17),children:[
-    const Text('Annual Road Tax',style:TextStyle(fontSize:22,fontWeight:FontWeight.w800)),
-    const SizedBox(height:5),const Text('Private petrol/diesel · Peninsular Malaysia · 12 months',
-     style:TextStyle(fontSize:12,color:_muted)),
-    const SizedBox(height:18),
-    TextField(controller:cc,keyboardType:TextInputType.number,
-     inputFormatters:const [GroupedNumberInputFormatter(decimalPlaces:0)],
-     decoration:const InputDecoration(labelText:'Engine capacity (cc)',hintText:'e.g. 1,498')),
-    const SizedBox(height:14),
-    SegmentedButton<bool>(segments:const [
-     ButtonSegment(value:false,label:Text('Saloon')),
-     ButtonSegment(value:true,label:Text('Non-saloon'))],
-     selected:{nonSaloon},onSelectionChanged:(v)=>setState(()=>nonSaloon=v.first)),
-    const SizedBox(height:17),
-    estimate==null?_card(const Text('Enter engine capacity to calculate.',style:TextStyle(color:_muted))):
-     _card(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      const Text('ESTIMATED ANNUAL ROAD TAX',style:TextStyle(fontSize:11,color:_muted,letterSpacing:1)),
-      const SizedBox(height:10),Text(money(estimate),style:const TextStyle(fontSize:32,fontWeight:FontWeight.w900,color:_mint)),
-      const SizedBox(height:11),_line('Engine capacity',groupedDigits(v.toString())+' cc'),
-      _line('Usage','Private ${nonSaloon?'non-saloon':'saloon'}'),
-      _line('Region','Peninsular Malaysia'),
-     ])),
-    const SizedBox(height:15),
-    const Text('Other regions, electric vehicles, commercial registration and special vehicle classes can have different rates. '
-     'This calculator is limited to the JPJ private Peninsular category shown above.',
+  final value=annualPrivateRoadTax(electric:electric,
+   eastMalaysia:east,nonSaloon:nonSaloon,
+   engineCc:int.tryParse(engine.text.replaceAll(',','')),
+   motorKw:double.tryParse(kw.text.replaceAll(',','')));
+  const dense=InputDecoration(isDense:true,
+   contentPadding:EdgeInsets.symmetric(horizontal:12,vertical:12));
+  return Scaffold(backgroundColor:_bg,
+   appBar:AppBar(backgroundColor:_bg,title:const Text('Road Tax Calculator')),
+   body:ListView(padding:const EdgeInsets.fromLTRB(16,8,16,25),children:[
+    const Text('Annual Road Tax',style:TextStyle(
+     fontSize:20,fontWeight:FontWeight.w900)),
+    const SizedBox(height:4),
+    const Text('Private passenger cars • 2026 LKM estimate',
      style:TextStyle(color:_muted,fontSize:11)),
-    TextButton.icon(onPressed:()=>_open('https://www.mot.gov.my/en/land/operators/road-taxes'),
-     icon:const Icon(Icons.open_in_new),label:const Text('JPJ / MOT official rate references')),
+    const SizedBox(height:13),
+    SegmentedButton<bool>(selected:{electric},showSelectedIcon:false,
+     segments:const [
+      ButtonSegment(value:false,label:Text('Petrol / Diesel')),
+      ButtonSegment(value:true,label:Text('Electric (EV)')),
+     ],onSelectionChanged:(v)=>setState(()=>electric=v.first)),
+    const SizedBox(height:12),
+    field(electric?'Motor power (kW)':'Engine capacity (cc)',TextField(
+     controller:electric?kw:engine,
+     keyboardType:const TextInputType.numberWithOptions(decimal:true),
+     inputFormatters:[GroupedNumberInputFormatter(decimalPlaces:electric?1:0)],
+     decoration:dense.copyWith(hintText:electric?'e.g. 150':'e.g. 1,498'),
+    )),
+    const SizedBox(height:10),
+    Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
+     Expanded(child:field('Region',DropdownButtonFormField<bool>(
+      key:ValueKey('region-$east-$electric'),
+      initialValue:electric?false:east,isExpanded:true,
+      decoration:dense,
+      items: [
+       DropdownMenuItem(value:false,child:Text(electric?'Nationwide':'Peninsular',
+        style:const TextStyle(fontSize:12))),
+       if(!electric)const DropdownMenuItem(value:true,
+        child:Text('Sabah / Sarawak',style:TextStyle(fontSize:12))),
+      ],
+      onChanged:electric?null:(v)=>setState(()=>east=v??false)))),
+     const SizedBox(width:9),
+     Expanded(child:field('Body type',DropdownButtonFormField<bool>(
+      key:ValueKey('body-$nonSaloon-$electric'),initialValue:nonSaloon,isExpanded:true,
+      decoration:dense,
+      items:const [
+       DropdownMenuItem(value:false,child:Text('Saloon',style:TextStyle(fontSize:12))),
+       DropdownMenuItem(value:true,child:Text('SUV / MPV',style:TextStyle(fontSize:12))),
+      ],
+      onChanged:electric?null:(v)=>setState(()=>nonSaloon=v??false)))),
+    ]),
+    const SizedBox(height:15),
+    if(value==null)const Text('Enter vehicle engine capacity or EV power.',
+     style:TextStyle(color:_muted,fontSize:12))
+    else Container(padding:const EdgeInsets.all(17),
+     decoration:BoxDecoration(color:const Color(0xFF1B3B32),
+      border:Border.all(color:const Color(0xFF367663)),
+      borderRadius:BorderRadius.circular(18)),
+     child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      const Text('ESTIMATED ANNUAL ROAD TAX',
+       style:TextStyle(color:_muted,letterSpacing:1,fontSize:11)),
+      const SizedBox(height:7),
+      Text(money(value),style:const TextStyle(fontWeight:FontWeight.w900,
+       color:_mint,fontSize:31)),
+      const SizedBox(height:5),
+      Text(electric?'Electric 2026 • nationwide':
+       (east?'Sabah / Sarawak':'Peninsular')+' • '+
+       (nonSaloon?'Non-saloon':'Saloon'),
+       style:const TextStyle(color:_muted,fontSize:11)),
+     ])),
+    if(value!=null)...[
+     const SizedBox(height:11),
+     SizedBox(width:double.infinity,child:OutlinedButton.icon(
+      onPressed:()=>Navigator.of(context).push(MaterialPageRoute(
+       builder:(_)=>OtrScreen(initialRoadTax:value))),
+      icon:const Icon(Icons.receipt_long_outlined,size:17),
+      label:const Text('Use in OTR quotation'))),
+    ],
+    const SizedBox(height:12),
+    const Text('Indicative private-car JPJ schedule. Company, commercial, '
+     'special registrations and EV power above 810 kW require official verification.',
+     style:TextStyle(color:_muted,fontSize:11)),
+    TextButton.icon(onPressed:()=>_open(
+      'https://www.jpj.gov.my/panduan-pengiraan-kadar-lkm/'),
+     icon:const Icon(Icons.open_in_new,size:17),
+     label:const Text('Check JPJ rate schedules')),
    ]));
  }
 }
