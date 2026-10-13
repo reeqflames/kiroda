@@ -67,6 +67,45 @@ void main(){
   expect(hi.basicPremium,305.50);
  });
 
+ test('Special Perils 0.2 percent uses vehicle sum insured, not premium',(){
+  final r=estimateMotorInsurance(sumInsured:50000,engineCc:1498,
+   ncdPercent:55,cover:comp,region:west,specialPerilsRatePercent:0.2)!;
+  expect(r.basicPremium,1579.50);
+  expect(r.ncdSaving,868.72);
+  expect(r.specialPerilsPremium,100);
+  expect(r.serviceTax,64.86);
+  expect(r.total,885.64);
+ });
+
+ test('both independently selected add-ons reconcile including SST',(){
+  final r=estimateMotorInsurance(sumInsured:50000,engineCc:1498,
+   ncdPercent:55,cover:comp,region:west,windscreenSum:2000,
+   specialPerilsRatePercent:0.2)!;
+  expect(r.windscreenPremium,300);
+  expect(r.specialPerilsPremium,100);
+  expect(r.ncdSaving,868.72);
+  expect(r.serviceTax,88.86);
+  expect(r.total,1209.64);
+ });
+
+ test('rate may be overridden without incorrectly applying NCD to add-on',(){
+  final r=estimateMotorInsurance(sumInsured:50000,engineCc:1498,
+    ncdPercent:55,cover:comp,region:west,specialPerilsRatePercent:0.5)!;
+  expect(r.specialPerilsPremium,250);
+  expect(r.total,1047.64);
+  expect(estimateMotorInsurance(sumInsured:50000,engineCc:1498,
+    ncdPercent:55,cover:comp,region:west,specialPerilsRatePercent:-0.1),isNull);
+  expect(estimateMotorInsurance(sumInsured:50000,engineCc:1498,
+    ncdPercent:55,cover:comp,region:west,specialPerilsRatePercent:double.nan),isNull);
+ });
+
+ test('Special Perils is unavailable for Third Party only',(){
+  expect(estimateMotorInsurance(sumInsured:50000,engineCc:1498,
+    ncdPercent:55,cover:third,region:west,specialPerilsRatePercent:0.2),isNull);
+  expect(estimateMotorInsurance(sumInsured:50000,engineCc:1498,
+    ncdPercent:55,cover:third,region:west),isNotNull);
+ });
+
  test('requires sum insured for comprehensive, but not for third party',(){
   expect(estimateMotorInsurance(sumInsured:null,engineCc:1500,ncdPercent:55,
     cover:comp,region:west),null);
