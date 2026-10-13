@@ -2,7 +2,7 @@
 // Consume a separately managed, authorized JSON endpoint; do not scrape websites.
 const platesFeedUrl = String.fromEnvironment(
   'PLATES_FEED_URL',
-  defaultValue: 'https://script.google.com/macros/s/AKfycbwnpXkPsNZbNuKW2h-MFBsnpLR6NBznwLvgJPo33wOwye8CChd85STHm8tHTpmzdL8t/exec?view=plates',
+  defaultValue: '',
 );
 
 class PlateRecord {
@@ -81,4 +81,10 @@ class PlateSnapshot {
     rest.sort((a,b) => a.state.compareTo(b.state));
     return rest;
   }
+}
+
+/// Only a configured, authorized HTTPS JSON feed may be treated as a data source.
+bool validPlateFeedUrl(String url) {
+ final uri=Uri.tryParse(url.trim());
+ return uri!=null && uri.scheme=='https' && uri.host.isNotEmpty && uri.userInfo.isEmpty;
 }
