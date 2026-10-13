@@ -15,7 +15,7 @@ on:
 jobs:
   apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -46,9 +46,7 @@ jobs:
         run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/autocalc_main.dart lib/autocalc/finance.dart lib/autocalc/plates_screen.dart lib/autocalc/plates_data.dart lib/autocalc/sa_tools.dart lib/autocalc/number_format.dart lib/autocalc/insurance_tariff.dart lib/autocalc/otr_finance.dart lib/autocalc/otr_screen.dart lib/autocalc/bank_compare.dart lib/autocalc/loan_compare_screen.dart lib/autocalc/road_tax.dart
       - name: Test payment math
         run: flutter test test/autocalc_finance_test.dart test/autocalc_tools_test.dart test/autocalc_plates_test.dart test/autocalc_number_format_test.dart test/autocalc_insurance_tariff_test.dart test/autocalc_insurance_screen_test.dart test/autocalc_v08_features_test.dart test/autocalc_v08_ui_test.dart
-      - name: Build signed debug test APK
-        run: flutter build apk --debug -t lib/autocalc_main.dart
-      - name: Build smaller per-ABI test APKs
+      - name: Build release APKs for Android 64-bit and 32-bit
         run: flutter build apk --release --split-per-abi -t lib/autocalc_main.dart
       - name: Upload installable APKs
         uses: actions/upload-artifact@v4
@@ -56,7 +54,6 @@ jobs:
           name: AutoCalc-MY-SA-v0.8-APKs
           if-no-files-found: error
           path: |
-            build/app/outputs/flutter-apk/app-debug.apk
             build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
             build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
             build/app/outputs/flutter-apk/app-x86_64-release.apk
