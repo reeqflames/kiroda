@@ -19,7 +19,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Market Value / Sum Insured (RM)'), findsOneWidget);
     expect(tester.widget<TextField>(find.byType(TextField).first).controller!.text, '50,000');
-    expect(find.textContaining('Market value does not affect this estimate.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('sum-insured-field')), findsOneWidget);
 
     await tester.tap(find.text('Comprehensive'));
     await tester.pumpAndSettle();
