@@ -33,8 +33,11 @@ class _OtrScreenState extends State<OtrScreen>{
   if(widget.initialInsurance!=null)insurance.text=groupedDigits(widget.initialInsurance!.toStringAsFixed(2));
   if(widget.initialRoadTax!=null)roadTax.text=groupedDigits(widget.initialRoadTax!.toStringAsFixed(2));
   for(final x in fields)x.addListener(repaint);
-  load();
-  if(widget.showSaved)WidgetsBinding.instance.addPostFrameCallback((_){if(mounted)history();});
+  load().then((_){
+   if(widget.showSaved&&mounted){
+    WidgetsBinding.instance.addPostFrameCallback((_){if(mounted)history();});
+   }
+  });
  }
  void repaint(){if(mounted)setState((){});}
  @override void dispose(){for(final x in fields)x.dispose();super.dispose();}
