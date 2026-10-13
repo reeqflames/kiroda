@@ -26,17 +26,21 @@ class InsuranceTool extends StatefulWidget {
  @override State<InsuranceTool> createState()=>_InsuranceToolState();
 }
 class _InsuranceToolState extends State<InsuranceTool>{
- final insured=TextEditingController(),windscreenAmount=TextEditingController();
+ final insured=TextEditingController(),windscreenAmount=TextEditingController(),
+  customPerilsRate=TextEditingController();
  int? engineBand; double? ncd;
  InsuranceCover cover=InsuranceCover.comprehensive;
  InsuranceRegion region=InsuranceRegion.peninsular;
- bool windscreen=false,showBreakdown=false;
+ bool windscreen=false,specialPerils=false,showBreakdown=false;
+ double perilsRateChoice=0.2; // Indicative, editable as Custom.
  @override void initState(){
   super.initState();
   insured.addListener(redraw);windscreenAmount.addListener(redraw);
+  customPerilsRate.addListener(redraw);
  }
  void redraw(){if(mounted)setState((){});}
- @override void dispose(){insured.dispose();windscreenAmount.dispose();super.dispose();}
+ @override void dispose(){insured.dispose();windscreenAmount.dispose();
+  customPerilsRate.dispose();super.dispose();}
  Widget _field(String label,Widget control,{Key? key})=>Column(
   key:key,crossAxisAlignment:CrossAxisAlignment.start,children:[
    Text(label,style:const TextStyle(fontSize:11,fontWeight:FontWeight.w700,color:_muted),
@@ -58,16 +62,24 @@ class _InsuranceToolState extends State<InsuranceTool>{
     Text('This is a baseline estimate using the former Malaysian Motor Tariff, '
      'not a real-time insurer quote. Premiums depend on insurer and risk profile. '
      'NCD is applied to eligible basic premium only. Windscreen uses a provisional '
-     '15% of glass cover; SST 8% and RM10 stamp duty are included for illustration.',
+     '15% of glass cover. Special Perils is calculated on vehicle Sum Insured. '
+     'The 0.20% default is only an example; some insurers offer 0.25%, 0.50% '
+     'or other rates and coverage. Check whether perils are already included. '
+     'NCD is not applied to these add-ons; SST 8% and RM10 stamp duty are '
+     'included in this estimate.',
      style:TextStyle(color:_muted,height:1.5,fontSize:13)))));
  @override Widget build(BuildContext context){
   final comprehensive=cover==InsuranceCover.comprehensive;
   final glassOn=comprehensive&&windscreen;
+  final perilOn=comprehensive&&specialPerils;
   final glass=glassOn?parsePositive(windscreenAmount.text):0.0;
+  final perilRate=perilOn?(perilsRateChoice<0
+   ? (parsePositive(customPerilsRate.text)??double.nan):perilsRateChoice):0.0;
   final quote=estimateMotorInsurance(
    sumInsured:parsePositive(insured.text),engineCc:engineBand,
    ncdPercent:ncd,cover:cover,region:region,
    windscreenSum:glass??double.nan,
+   specialPerilsRatePercent:perilRate,
   );
   final inputStyle=const TextStyle(fontSize:13,fontWeight:FontWeight.w600);
   const dense=InputDecoration(isDense:true,
@@ -152,6 +164,43 @@ class _InsuranceToolState extends State<InsuranceTool>{
       keyboardType:const TextInputType.numberWithOptions(decimal:true),
       style:inputStyle,decoration:dense.copyWith(hintText:'e.g. 2,000'))),
     ],
+    const SizedBox(height:10),
+    _duo(
+     _field('Special Perils',Material(
+      color:_panel,borderRadius:BorderRadius.circular(12),
+      clipBehavior:Clip.antiAlias,
+      child:SwitchListTile.adaptive(
+       key:const ValueKey('special-perils-toggle'),
+       title:const Text('Optional',style:TextStyle(fontSize:12)),
+       contentPadding:const EdgeInsets.only(left:10,right:6),
+       dense:true,
+       activeThumbColor:_mint,
+       value:specialPerils&&comprehensive,
+       onChanged:comprehensive?(v)=>setState(()=>specialPerils=v):null),
+     ),key:const ValueKey('special-perils-toggle-field')),
+     _field('Perils rate',DropdownButtonFormField<double>(
+      key:ValueKey('perils-rate-$perilsRateChoice-$comprehensive-$specialPerils'),
+      initialValue:perilsRateChoice,
+      isExpanded:true,
+      decoration:dense,
+      items:const [
+       DropdownMenuItem(value:0.2,child:Text('0.20%')),
+       DropdownMenuItem(value:0.25,child:Text('0.25%')),
+       DropdownMenuItem(value:0.5,child:Text('0.50%')),
+       DropdownMenuItem(value:-1.0,child:Text('Custom')),
+      ],
+      onChanged:perilOn?(v)=>setState(()=>perilsRateChoice=v??0.2):null),
+      key:const ValueKey('special-perils-rate-field')),
+    ),
+    if(perilOn&&perilsRateChoice<0)...[
+     const SizedBox(height:10),
+     _field('Insurer Special Perils rate (%)',TextField(
+      controller:customPerilsRate,
+      keyboardType:const TextInputType.numberWithOptions(decimal:true),
+      style:inputStyle,
+      decoration:dense.copyWith(hintText:'e.g. 0.35'),
+     )),
+    ],
     const SizedBox(height:13),
     if(quote==null)const Padding(
      padding:EdgeInsets.symmetric(vertical:12),
@@ -183,6 +232,8 @@ class _InsuranceToolState extends State<InsuranceTool>{
        _breakRow('Basic premium',money(quote.basicPremium)),
        _breakRow('NCD saving','− '+money(quote.ncdSaving)),
        if(glassOn)_breakRow('Windscreen',money(quote.windscreenPremium)),
+       if(perilOn)_breakRow('Special Perils ('+perilRate.toStringAsFixed(2)+'%)',
+         money(quote.specialPerilsPremium)),
        _breakRow('SST',money(quote.serviceTax)),
        _breakRow('Stamp duty',money(quote.stampDuty)),
       ],
@@ -196,7 +247,7 @@ class _InsuranceToolState extends State<InsuranceTool>{
       label:const Text('Use estimated insurance in OTR'))),
     ],
     const SizedBox(height:6),
-    const Text('Indicative former Motor Tariff baseline; verify insurer quotation.',
+    const Text('Indicative baseline/add-on rates; verify insurer quotation and cover.',
      style:TextStyle(color:_muted,fontSize:10)),
    ]));
  }
