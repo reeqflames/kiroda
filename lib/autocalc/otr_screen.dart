@@ -80,7 +80,7 @@ class _OtrScreenState extends State<OtrScreen>{
    'custom':custom,'rate':rate};
   pairs.forEach((k,v)=>v.text=(d[k]??'').toString());
   setState((){
-   years=(d['years'] as num?)?.toInt();
+   years=(d['years'] as int?);
    rateMode=d['rateMode']=='eir'?LoanMode.eir:LoanMode.flat;
    finance=d['finance']=='full'?FinanceShare.full:
       d['finance']=='custom'?FinanceShare.custom:FinanceShare.ninety;
