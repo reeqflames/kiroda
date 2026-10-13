@@ -2,6 +2,13 @@ import 'package:flutter_test/flutter_test.dart';
 import '../lib/autocalc/plates_data.dart';
 
 void main() {
+  test('plate source must be an authorized HTTPS JSON endpoint', () {
+    expect(validPlateFeedUrl(''), false);
+    expect(validPlateFeedUrl('http://sample.example/api'), false);
+    expect(validPlateFeedUrl('https://data.example/api'), true);
+    expect(validPlateFeedUrl('https://user:pass@data.example/api'), false);
+  });
+
   Map<String, Object?> sample({bool stale = false}) => {
     'success': true,
     'stale': stale,
