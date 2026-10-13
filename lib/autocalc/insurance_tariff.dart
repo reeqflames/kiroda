@@ -37,18 +37,23 @@ class MotorInsuranceEstimate {
   required this.ncdSaving,
   required this.afterNcd,
   required this.windscreenPremium,
+  required this.specialPerilsPremium,
   required this.serviceTax,
   required this.stampDuty,
   required this.total,
  });
  final double baseRate, valueLoading, basicPremium, ncdSaving, afterNcd,
-    windscreenPremium, serviceTax, stampDuty, total;
+    windscreenPremium, specialPerilsPremium, serviceTax, stampDuty, total;
 }
 
 /// The sumInsured is ignored for THIRD PARTY; its tariff is by engine cc only.
 /// For comprehensive cover, the rate covers first RM1,000; every remaining
 /// RM1,000 or PART of RM1,000 is charged the zone's additional block rate.
 /// Glass cover uses 15% of insured glass value as an OPTIONAL illustration.
+/// Optional Special Perils premium is % of *vehicle Sum Insured* (before SST).
+/// Different insurers charge different rates and may offer reduced scopes;
+/// this calculator does not claim all policies include identical perils.
+/// NCD does not reduce either separately purchased add-on.
 MotorInsuranceEstimate? estimateMotorInsurance({
  required double? sumInsured,
  required int? engineCc,
@@ -56,17 +61,21 @@ MotorInsuranceEstimate? estimateMotorInsurance({
  required InsuranceCover cover,
  required InsuranceRegion region,
  double windscreenSum = 0,
+ double specialPerilsRatePercent = 0,
 }) {
  if (engineCc == null || engineCc <= 0 || engineCc > 20000 ||
      ncdPercent == null || !ncdPercent.isFinite ||
      ncdPercent < 0 || ncdPercent > 55 ||
-     !windscreenSum.isFinite || windscreenSum < 0 || windscreenSum > 1000000) {
+     !windscreenSum.isFinite || windscreenSum < 0 || windscreenSum > 1000000 ||
+     !specialPerilsRatePercent.isFinite || specialPerilsRatePercent < 0 ||
+     specialPerilsRatePercent > 2) {
   return null;
  }
  if (cover == InsuranceCover.comprehensive &&
     (sumInsured == null || !sumInsured.isFinite ||
      sumInsured < 1000 || sumInsured > 10000000)) return null;
- if (cover == InsuranceCover.thirdParty && windscreenSum > 0) return null;
+ if (cover == InsuranceCover.thirdParty &&
+    (windscreenSum > 0 || specialPerilsRatePercent > 0)) return null;
 
  final row = motorTariffRows.firstWhere((t) => engineCc <= t.maxCc);
  final west = region == InsuranceRegion.peninsular;
@@ -86,8 +95,10 @@ MotorInsuranceEstimate? estimateMotorInsurance({
  final discounted = _cents(basic * (1 - ncdPercent / 100));
  final discount = _cents(basic - discounted);
  final glass = _cents(windscreenSum * 0.15);
- final tax = _cents((discounted + glass) * 0.08);
- final total = _cents(discounted + glass + tax + 10);
+ final peril = specialPerilsRatePercent == 0 ? 0.0 :
+     _cents(sumInsured! * specialPerilsRatePercent / 100);
+ final tax = _cents((discounted + glass + peril) * 0.08);
+ final total = _cents(discounted + glass + peril + tax + 10);
  return MotorInsuranceEstimate(
   baseRate: _cents(baseRate),
   valueLoading: _cents(loading),
@@ -95,6 +106,7 @@ MotorInsuranceEstimate? estimateMotorInsurance({
   ncdSaving: discount,
   afterNcd: discounted,
   windscreenPremium: glass,
+  specialPerilsPremium: peril,
   serviceTax: tax,
   stampDuty: 10,
   total: total,
