@@ -12,6 +12,8 @@ import 'autocalc/finance.dart';
 import 'autocalc/number_format.dart';
 import 'autocalc/plates_screen.dart';
 import 'autocalc/sa_tools.dart';
+import 'autocalc/otr_screen.dart';
+import 'autocalc/loan_compare_screen.dart';
 
 const bg=Color(0xFF0D161C), cardColor=Color(0xFF18282E), accent=Color(0xFF6DE5C1), muted=Color(0xFFADC2C0), border=Color(0xFF2F4A4C);
 void main(){WidgetsFlutterBinding.ensureInitialized();runApp(const AutoCalcApp());}
@@ -97,7 +99,7 @@ class _AutoHomeState extends State<AutoHome>{
    Expanded(child:DropdownButtonFormField<int>(initialValue:years,isExpanded:true,
     hint:const Text('Choose'),
     decoration:const InputDecoration(labelText:'Years',prefixIcon:Icon(Icons.timelapse)),
-    items:List.generate(9,(i)=>DropdownMenuItem(value:i+1,child:Text('${i+1} years'))),
+    items:List.generate(12,(i)=>DropdownMenuItem(value:i+1,child:Text((i+1).toString()+' years'))),
     onChanged:(v)=>setState((){years=v;paid=0;}))),
   ]),
   const SizedBox(height:18),
@@ -126,6 +128,12 @@ class _AutoHomeState extends State<AutoHome>{
    ])),
 
   ],
+  const SizedBox(height:12),
+  Row(children:[
+   Expanded(child:action('OTR Quote',Icons.receipt_long_outlined,openOtr)),
+   const SizedBox(width:9),
+   Expanded(child:action('Compare banks',Icons.compare_arrows_outlined,openCompare)),
+  ]),
   const SizedBox(height:17),
   const Text('Indicative only · Bank approval, interest and repayment schedule may differ.',style:TextStyle(color:muted,fontSize:11)),
  ]);
@@ -202,6 +210,8 @@ class _AutoHomeState extends State<AutoHome>{
  }
  Widget saved()=>ListView(padding:const EdgeInsets.fromLTRB(18,5,18,30),children:[
   title('Saved Calculations','Offline and private on this phone'),
+  action('Saved OTR quotations',Icons.receipt_long_outlined,()=>Navigator.of(context).push(MaterialPageRoute(builder:(_)=>const OtrScreen(showSaved:true)))),
+  const SizedBox(height:12),
   if(history.isEmpty)panel(const Padding(padding:EdgeInsets.all(20),child:Text('No saved calculations yet.',style:TextStyle(color:muted))))
   else ...List.generate(history.length,(i){
    final m=jsonDecode(history[i]) as Map<String,dynamic>;
@@ -220,9 +230,21 @@ class _AutoHomeState extends State<AutoHome>{
  void preview(LoanPlan x)=>showModalBottomSheet<void>(context:context,isScrollControlled:true,backgroundColor:bg,
   showDragHandle:true,builder:(_)=>QuotePreview(x:x,title:label.text,adviser:sa.text,phone:phone.text));
  Future<void> go(String url)async{if(!await launchUrl(Uri.parse(url),mode:LaunchMode.externalApplication))info('Unable to open link');}
+ void openOtr()=>Navigator.of(context).push(MaterialPageRoute(
+  builder:(_)=>const OtrScreen()));
+ void openCompare(){
+  final current=calc;
+  Navigator.of(context).push(MaterialPageRoute(builder:(_)=>LoanComparisonScreen(
+   initialLoan:current?.amount,initialRate:current?.ratePercent,
+   initialYears:current?.years,initialMode:mode)));
+ }
  void tools()=>showModalBottomSheet<void>(context:context,backgroundColor:cardColor,showDragHandle:true,
   builder:(c)=>SafeArea(child:Padding(padding:const EdgeInsets.all(18),child:Column(mainAxisSize:MainAxisSize.min,children:[
    const Text('SA TOOLS',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900)),
+   ListTile(leading:const Icon(Icons.receipt_long_outlined,color:accent),title:const Text('OTR & Down Payment'),
+    onTap:(){Navigator.pop(c);openOtr();}),
+   ListTile(leading:const Icon(Icons.compare_arrows_outlined,color:accent),title:const Text('Compare 2–3 Bank Offers'),
+    onTap:(){Navigator.pop(c);openCompare();}),
    ListTile(leading:const Icon(Icons.pin_outlined,color:accent),title:const Text('Latest Plates · In-app'),
     onTap:(){Navigator.pop(c);setState(()=>tab=2);}),
    ListTile(leading:const Icon(Icons.shield_outlined,color:accent),title:const Text('Insurance Estimate'),
@@ -231,7 +253,7 @@ class _AutoHomeState extends State<AutoHome>{
     onTap:(){Navigator.pop(c);Navigator.of(context).push(MaterialPageRoute(builder:(_)=>const RoadTaxTool()));}),
    ListTile(leading:const Icon(Icons.verified_outlined,color:accent),title:const Text('JPJ · Official Plate Check'),
     onTap:(){Navigator.pop(c);go('https://www.jpj.gov.my/semakan-nombor-pendaftaran-terkini/');}),
-   const Text('Bank comparison, full OTR and EV road tax are planned for future builds.',style:TextStyle(fontSize:11,color:muted)),
+   const Text('Insurance prices and repayment schedules are indicative. EV road tax and live plate feed remain limited.',style:TextStyle(fontSize:11,color:muted)),
   ]))));
  void profile()=>showModalBottomSheet<void>(context:context,isScrollControlled:true,backgroundColor:cardColor,
   showDragHandle:true,builder:(c)=>Padding(padding:EdgeInsets.fromLTRB(18,4,18,MediaQuery.viewInsetsOf(c).bottom+22),
