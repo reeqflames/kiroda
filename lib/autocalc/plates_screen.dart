@@ -7,7 +7,8 @@ import 'plates_data.dart';
 
 const b=Color(0xFF0D161C), surface=Color(0xFF18282E), mint=Color(0xFF6DE5C1),
   muted=Color(0xFFADC2C0), stroke=Color(0xFF30494C);
-const key='autocalc_plates_last_good_v3';
+const key='autocalc_plates_last_good_v8';
+const feedSetting='ac_authorized_plates_feed_v8';
 const jpj='https://www.jpj.gov.my/en/inquiry-of-latest-registration-number/';
 
 class LatestPlatesScreen extends StatefulWidget {
@@ -17,23 +18,29 @@ class LatestPlatesScreen extends StatefulWidget {
 class _LatestPlatesScreenState extends State<LatestPlatesScreen>{
  PlateSnapshot? snapshot;
  bool loading=false, failed=false, expanded=false;
+ String feedUrl=platesFeedUrl;
  @override void initState(){super.initState();init();}
  Future<void> init()async{
   try {
    final p=await SharedPreferences.getInstance();
+   feedUrl=p.getString(feedSetting)??platesFeedUrl;
    final old=p.getString(key);
    if(old!=null&&mounted){
     final cached=PlateSnapshot.fromJson(jsonDecode(old),cached:true);
     if(cached!=null)setState(()=>snapshot=cached);
    }
   }catch(_){}
-  await refresh();
+  if(feedUrl.isNotEmpty)await refresh();
  }
  Future<void> refresh()async{
   if(loading)return;
+  if(!validPlateFeedUrl(feedUrl)){
+   if(mounted)setState(()=>failed=true);
+   return;
+  }
   setState((){loading=true;failed=false;});
   try {
-   final r=await http.get(Uri.parse(platesFeedUrl),headers:const {'Accept':'application/json'})
+   final r=await http.get(Uri.parse(feedUrl),headers:const {'Accept':'application/json'})
     .timeout(const Duration(seconds:15));
    if(r.statusCode!=200||r.body.length>350000)throw const FormatException('Unusable response');
    final fresh=PlateSnapshot.fromJson(jsonDecode(r.body));
@@ -46,6 +53,38 @@ class _LatestPlatesScreenState extends State<LatestPlatesScreen>{
   }catch(_){if(mounted)setState(()=>failed=true);}
   finally{if(mounted)setState(()=>loading=false);}
  }
+ Future<void> configure()async{
+  final url=TextEditingController(text:feedUrl);
+  await showDialog<void>(context:context,builder:(dialogCtx)=>AlertDialog(
+   title:const Text('Plate data source'),
+   content:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[
+    const Text('Enter a permitted HTTPS JSON feed URL. AutoCalc expects a success, plates, fetchedAt payload. '
+     'This does not change AutoQuote Ema.',style:TextStyle(fontSize:12)),
+    const SizedBox(height:12),
+    TextField(controller:url,autocorrect:false,keyboardType:TextInputType.url,
+     decoration:const InputDecoration(labelText:'Authorized feed URL')),
+   ]),
+   actions:[
+    TextButton(onPressed:()=>Navigator.pop(dialogCtx),child:const Text('Cancel')),
+    TextButton(onPressed:()async{
+     final input=url.text.trim();
+     if(input.isNotEmpty&&!validPlateFeedUrl(input)){
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+       content:Text('Please enter a valid HTTPS endpoint.')));
+      return;
+     }
+     final p=await SharedPreferences.getInstance();
+     await p.setString(feedSetting,input);
+     if(input!=feedUrl)await p.remove(key);
+     if(mounted)setState((){
+      feedUrl=input;snapshot=null;failed=input.isEmpty;
+     });
+     if(dialogCtx.mounted)Navigator.pop(dialogCtx);
+     if(input.isNotEmpty)await refresh();
+    },child:const Text('Save')),
+   ]));
+  url.dispose();
+ }
  Future<void> openJpj()async{
   if(!await launchUrl(Uri.parse(jpj),mode:LaunchMode.externalApplication)&&mounted){
    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Unable to open JPJ')));
@@ -53,7 +92,7 @@ class _LatestPlatesScreenState extends State<LatestPlatesScreen>{
  }
  @override Widget build(BuildContext context){
   final data=snapshot;
-  final status=data==null?'OFFLINE':(failed||data.stale?'SAVED':'LIVE');
+  final status=feedUrl.isEmpty?'NOT CONNECTED':data==null?'UNAVAILABLE':(failed||data.stale?'SAVED':'LIVE');
   return RefreshIndicator(onRefresh:refresh,color:mint,child:ListView(
    physics:const AlwaysScrollableScrollPhysics(),
    padding:const EdgeInsets.fromLTRB(16,8,16,28),children:[
@@ -63,6 +102,8 @@ class _LatestPlatesScreenState extends State<LatestPlatesScreen>{
      const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       Text('Latest Plate Numbers',style:TextStyle(fontWeight:FontWeight.w900,fontSize:21)),
       Text('Malaysia running numbers',style:TextStyle(color:muted,fontSize:12))])),
+     IconButton(tooltip:'Configure authorized plate feed',onPressed:configure,
+      icon:const Icon(Icons.settings_outlined,color:muted)),
      IconButton(tooltip:'Refresh',onPressed:loading?null:refresh,
       icon:loading?const SizedBox(width:21,height:21,child:CircularProgressIndicator(strokeWidth:2,color:mint))
        :const Icon(Icons.refresh_rounded,color:mint)),
@@ -74,7 +115,7 @@ class _LatestPlatesScreenState extends State<LatestPlatesScreen>{
        borderRadius:BorderRadius.circular(99)),
       child:Text(status,style:TextStyle(fontSize:10,color:status=='LIVE'?mint:muted,fontWeight:FontWeight.w900))),
      const SizedBox(width:10),
-     Expanded(child:Text(data==null?'No saved data yet':
+     Expanded(child:Text(data==null?(feedUrl.isEmpty?'Connect a permitted data source':'No saved data yet'):
       (data.sourceUpdatedAt.isEmpty?'Update time unavailable':data.sourceUpdatedAt),
        maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(color:muted,fontSize:11))),
     ]),
@@ -120,12 +161,15 @@ class _LatestPlatesScreenState extends State<LatestPlatesScreen>{
  Widget _empty()=>_shell(Column(children:[
   const Icon(Icons.wifi_off_rounded,color:muted,size:34),
   const SizedBox(height:9),
-  const Text('Latest numbers unavailable',style:TextStyle(fontWeight:FontWeight.bold)),
+  Text(feedUrl.isEmpty?'Plate feed not connected':'Latest numbers unavailable',
+   style:const TextStyle(fontWeight:FontWeight.bold)),
   const SizedBox(height:5),
-  const Text('Refresh with an internet connection. No fake or outdated live values.',
+  Text(feedUrl.isEmpty?'Add an authorized data feed in Settings, or verify directly with JPJ.':
+   'Data source could not provide verified plate numbers. Check it and try again.',
    style:TextStyle(color:muted,fontSize:12),textAlign:TextAlign.center),
-  TextButton.icon(onPressed:loading?null:refresh,icon:const Icon(Icons.refresh),
-   label:const Text('Try again')),
+  TextButton.icon(onPressed:feedUrl.isEmpty?configure:(loading?null:refresh),
+   icon:Icon(feedUrl.isEmpty?Icons.settings:Icons.refresh),
+   label:Text(feedUrl.isEmpty?'Configure source':'Try again')),
  ]));
  Widget _featured(PlateRecord p)=>_shell(Row(children:[
   Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
