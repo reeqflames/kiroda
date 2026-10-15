@@ -1,13 +1,5 @@
-name: Flutter CI
+name: Build AutoCalc MY APK (manual)
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - 'PROJECT_STATE.md'
-      - 'README.md'
-      - '.github/workflows/prune-actions-artifacts.yml'
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
