@@ -5,6 +5,7 @@ on:
     paths-ignore:
       - 'PROJECT_STATE.md'
       - 'README.md'
+      - '.github/workflows/prune-actions-artifacts.yml'
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -37,3 +38,4 @@ jobs:
             build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
             build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
             build/app/outputs/flutter-apk/app-x86_64-release.apk
+          retention-days: 14
