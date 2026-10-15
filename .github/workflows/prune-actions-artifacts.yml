@@ -7,7 +7,7 @@ on:
       - '.github/workflows/prune-actions-artifacts.yml'
   workflow_dispatch:
   schedule:
-    - cron: '17 2 * * 0'
+    - cron: '17 2 * * *'
 
 permissions:
   actions: write
@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Keep two newest artifacts, remove older copies
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const { owner, repo } = context.repo;
